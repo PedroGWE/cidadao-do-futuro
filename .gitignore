@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Turbo
+.turbo/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!infra/docker/.env.example
+!apps/web/.env.production
+!apps/api/.env.production.example
+!apps/web/.env.production.example
+
+# Prisma
+prisma/migrations/
+!prisma/schema.prisma
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+
+# Type checking cache
+*.tsbuildinfo

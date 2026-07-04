@@ -1,0 +1,2044 @@
+// ============================================================
+// Cidadão do Futuro - Prisma Schema
+// Brazilian Social Project Management Enterprise SaaS Platform
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum TenantType {
+  OSC
+  INSTITUTO
+  FUNDACAO
+  ASSOCIACAO
+  EMPRESA
+}
+
+enum TenantPlan {
+  FREE
+  BASIC
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  TRIAL
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ProjectType {
+  CULTURAL
+  ESPORTIVO
+  EDUCACIONAL
+  ASSISTENCIA_SOCIAL
+  SAUDE
+  AMBIENTAL
+}
+
+enum ProjectStatus {
+  RASCUNHO
+  CAPTACAO
+  APROVADO
+  EM_EXECUCAO
+  CONCLUIDO
+  SUSPENSO
+  CANCELADO
+}
+
+enum ProjectMemberRole {
+  GESTOR
+  COORDENADOR
+  COLABORADOR
+  VOLUNTARIO
+}
+
+enum PhaseStatus {
+  NAO_INICIADA
+  EM_ANDAMENTO
+  CONCLUIDA
+  SUSPENSA
+  CANCELADA
+}
+
+enum TaskStatus {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+  BLOQUEADA
+}
+
+enum TaskPriority {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RiskStatus {
+  IDENTIFICADO
+  EM_MONITORAMENTO
+  MITIGADO
+  OCORRIDO
+  ENCERRADO
+}
+
+enum FundingOpportunityType {
+  EDITAL
+  CONVENIO
+  EMENDA
+  PATROCINIO
+  LEI_INCENTIVO
+  DOACAO
+}
+
+enum FundingOpportunityStatus {
+  ABERTO
+  ENCERRADO
+  SUSPENSO
+  EM_BREVE
+}
+
+enum FundingApplicationStatus {
+  RASCUNHO
+  SUBMETIDO
+  EM_ANALISE
+  APROVADO
+  REPROVADO
+  RECURSO
+  HOMOLOGADO
+}
+
+enum IncentiveLawType {
+  ROUANET
+  FNC
+  PRONAC
+  ESTADUAL
+  MUNICIPAL
+  ESPORTE
+  CRIANCA
+}
+
+enum ConvenioStatus {
+  PROPOSTA
+  ASSINADO
+  EM_EXECUCAO
+  PRESTACAO_CONTAS
+  ENCERRADO
+  INADIMPLENTE
+}
+
+enum EmendaType {
+  INDIVIDUAL
+  BANCADA
+  COMISSAO
+}
+
+enum EmendaStatus {
+  INDICADA
+  EMPENHADA
+  PAGA
+  CANCELADA
+}
+
+enum BudgetStatus {
+  ATIVO
+  SUSPENSO
+  ENCERRADO
+  REVISAO
+}
+
+enum TransactionType {
+  RECEITA
+  DESPESA
+  TRANSFERENCIA
+  DEVOLUCAO
+}
+
+enum TransactionStatus {
+  PENDENTE
+  APROVADO
+  PAGO
+  CANCELADO
+  ESTORNADO
+}
+
+enum InvoiceStatus {
+  PENDENTE
+  VALIDADA
+  REJEITADA
+}
+
+enum DocumentType {
+  CONTRATO
+  ESTATUTO
+  CERTIDAO
+  RELATORIO
+  NOTA_FISCAL
+  COMPROVANTE
+  OFICIO
+  ATA
+  OUTROS
+}
+
+enum DocumentStatus {
+  RASCUNHO
+  PENDENTE_ASSINATURA
+  ASSINADO
+  VENCIDO
+  ARQUIVADO
+}
+
+enum SignatureStatus {
+  PENDENTE
+  ASSINADO
+  REJEITADO
+}
+
+enum AccountabilityReportType {
+  PARCIAL
+  FINAL
+  ANUAL
+}
+
+enum AccountabilityReportStatus {
+  RASCUNHO
+  EM_REVISAO
+  SUBMETIDO
+  EM_ANALISE
+  APROVADO
+  REPROVADO
+  PENDENTE_CORRECAO
+}
+
+enum GlossStatus {
+  PENDENTE
+  ACEITO
+  RECURSO
+  DEFINITIVO
+}
+
+enum IndicatorType {
+  QUANTITATIVO
+  QUALITATIVO
+}
+
+enum MeasurementFrequency {
+  DIARIO
+  SEMANAL
+  MENSAL
+  TRIMESTRAL
+  ANUAL
+}
+
+enum Gender {
+  MASCULINO
+  FEMININO
+  NAO_BINARIO
+  PREFIRO_NAO_INFORMAR
+  OUTRO
+}
+
+enum Race {
+  BRANCA
+  PRETA
+  PARDA
+  AMARELA
+  INDIGENA
+  NAO_DECLARADA
+}
+
+enum BeneficiaryStatus {
+  ATIVO
+  INATIVO
+  SUSPENSO
+  EGRESSO
+}
+
+enum ActivityType {
+  OFICINA
+  AULA
+  EVENTO
+  REUNIAO
+  VISITA
+  CAPACITACAO
+  OUTROS
+}
+
+enum ActivityStatus {
+  AGENDADA
+  EM_ANDAMENTO
+  REALIZADA
+  CANCELADA
+}
+
+enum EnrollmentStatus {
+  INSCRITO
+  CONFIRMADO
+  AUSENTE
+  PRESENTE
+  CANCELADO
+}
+
+enum PartnerType {
+  EMPRESA
+  GOVERNO
+  OUTRO_OSC
+  PESSOA_FISICA
+  INTERNACIONAL
+}
+
+enum PartnerStatus {
+  PROSPECTO
+  ATIVO
+  INATIVO
+}
+
+enum PartnershipType {
+  PATROCINIO
+  PARCERIA_TECNICA
+  COEXECUCAO
+  DOACAO
+  VOLUNTARIADO
+}
+
+enum PartnershipStatus {
+  PROPOSTA
+  ATIVO
+  ENCERRADO
+  CANCELADO
+}
+
+enum SponsorTier {
+  DIAMANTE
+  OURO
+  PRATA
+  BRONZE
+  APOIADOR
+}
+
+enum SponsorStatus {
+  ATIVO
+  INATIVO
+  PROSPECTO
+}
+
+enum WorkflowStatus {
+  PENDENTE
+  EM_ANDAMENTO
+  APROVADO
+  REJEITADO
+  CANCELADO
+}
+
+enum ApprovalStatus {
+  PENDENTE
+  APROVADO
+  REJEITADO
+  DELEGADO
+}
+
+enum ComplianceStatus {
+  CONFORME
+  NAO_CONFORME
+  PENDENTE
+  NA
+}
+
+enum LGPDConsentStatus {
+  ATIVO
+  REVOGADO
+}
+
+enum AIAgentType {
+  JURIDICO
+  FINANCEIRO
+  CAPTACAO
+  GESTAO
+  COMPLIANCE
+}
+
+enum AIAgentStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum AITaskStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  WHATSAPP
+  PUSH
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  READ
+  FAILED
+}
+
+enum OrganizationDocumentStatus {
+  VALIDO
+  VENCIDO
+  PENDENTE
+  REJEITADO
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+// ============================================================
+// TENANT & IDENTITY
+// ============================================================
+
+model Tenant {
+  id         String       @id @default(cuid())
+  slug       String       @unique
+  name       String
+  type       TenantType
+  plan       TenantPlan   @default(FREE)
+  status     TenantStatus @default(TRIAL)
+  settings   Json         @default("{}")
+  logo_url   String?
+  cnpj       String?      @unique
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
+  deleted_at DateTime?
+
+  // Relations
+  users                  User[]
+  roles                  Role[]
+  organizations          Organization[]
+  projects               Project[]
+  funding_opportunities  FundingOpportunity[]
+  funding_applications   FundingApplication[]
+  incentive_laws         IncentiveLaw[]
+  convenios              Convenio[]
+  emendas                EmendaParlamentar[]
+  budgets                Budget[]
+  cost_centers           CostCenter[]
+  transactions           Transaction[]
+  payment_orders         PaymentOrder[]
+  invoices               Invoice[]
+  bank_reconciliations   BankReconciliation[]
+  documents              Document[]
+  accountability_reports AccountabilityReport[]
+  indicators             Indicator[]
+  beneficiaries          Beneficiary[]
+  activities             Activity[]
+  partners               Partner[]
+  partnerships           Partnership[]
+  sponsors               Sponsor[]
+  workflow_templates     WorkflowTemplate[]
+  workflow_instances     WorkflowInstance[]
+  legal_requirements     LegalRequirement[]
+  compliance_checks      ComplianceCheck[]
+  lgpd_consents          LGPDConsent[]
+  ai_agents              AIAgent[]
+  ai_conversations       AIConversation[]
+  ai_tasks               AITask[]
+  document_embeddings    DocumentEmbedding[]
+  notifications          Notification[]
+  notification_templates NotificationTemplate[]
+  system_settings        SystemSetting[]
+  audit_logs             AuditLog[]
+  document_folders       DocumentFolder[]
+  user_invites           UserInvite[]
+
+  @@index([slug])
+  @@index([cnpj])
+  @@index([status])
+  @@index([deleted_at])
+  @@map("tenants")
+}
+
+model User {
+  id                  String     @id @default(cuid())
+  tenant_id           String
+  email               String
+  password_hash       String
+  name                String
+  phone               String?
+  avatar_url          String?
+  status              UserStatus @default(ACTIVE)
+  email_verified_at   DateTime?
+  last_login_at       DateTime?
+  created_at          DateTime   @default(now())
+  updated_at          DateTime   @updatedAt
+  deleted_at          DateTime?
+
+  // Relations
+  tenant                 Tenant               @relation(fields: [tenant_id], references: [id])
+  user_roles             UserRole[]           @relation("UserToUserRole")
+  granted_roles          UserRole[]           @relation("GrantedByUser")
+  refresh_tokens         RefreshToken[]
+  managed_projects       Project[]            @relation("ProjectManager")
+  created_projects       Project[]            @relation("ProjectCreator")
+  project_members        ProjectMember[]
+  assigned_tasks         ProjectTask[]
+  risk_owners            ProjectRisk[]
+  ai_conversations       AIConversation[]
+  notifications          Notification[]
+  created_documents      Document[]           @relation("DocumentCreator")
+  document_versions      DocumentVersion[]
+  accountability_reports AccountabilityReport[] @relation("AccountabilityReportCreator")
+  workflow_instances     WorkflowInstance[]   @relation("WorkflowStarter")
+  workflow_approvals     WorkflowApproval[]
+  compliance_checks      ComplianceCheck[]    @relation("ComplianceChecker")
+  system_settings        SystemSetting[]
+  audit_logs             AuditLog[]
+  activity_responsible   Activity[]
+  sent_invites           UserInvite[]         @relation("InviteSender")
+  indicator_measurements IndicatorMeasurement[] @relation("MeasurementVerifier")
+  created_indicators     Indicator[]
+  created_transactions   Transaction[]        @relation("TransactionCreator")
+  approved_transactions  Transaction[]        @relation("TransactionApprover")
+  approved_payment_orders PaymentOrder[]
+  validated_invoices     Invoice[]
+
+  @@unique([tenant_id, email])
+  @@index([tenant_id])
+  @@index([email])
+  @@index([status])
+  @@index([deleted_at])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  tenant_id   String
+  name        String
+  description String?
+  is_system   Boolean  @default(false)
+  permissions Json     @default("[]")
+  created_at  DateTime @default(now())
+
+  // Relations
+  tenant       Tenant       @relation(fields: [tenant_id], references: [id])
+  user_roles   UserRole[]
+  user_invites UserInvite[]
+
+  @@unique([tenant_id, name])
+  @@index([tenant_id])
+  @@map("roles")
+}
+
+model UserRole {
+  user_id    String
+  role_id    String
+  granted_by String?
+  granted_at DateTime  @default(now())
+  expires_at DateTime?
+
+  // Relations
+  user       User  @relation("UserToUserRole", fields: [user_id], references: [id])
+  role       Role  @relation(fields: [role_id], references: [id])
+  granted_by_user User? @relation("GrantedByUser", fields: [granted_by], references: [id])
+
+  @@id([user_id, role_id])
+  @@index([user_id])
+  @@index([role_id])
+  @@index([granted_by])
+  @@index([expires_at])
+  @@map("user_roles")
+}
+
+model Permission {
+  id          String  @id @default(cuid())
+  resource    String
+  action      String
+  description String?
+
+  @@unique([resource, action])
+  @@index([resource])
+  @@map("permissions")
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  user_id    String
+  token_hash String    @unique
+  expires_at DateTime
+  revoked_at DateTime?
+  user_agent String?
+  ip_address String?
+  created_at DateTime  @default(now())
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([token_hash])
+  @@index([expires_at])
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  tenant_id   String
+  user_id     String?
+  action      String
+  resource    String
+  resource_id String?
+  old_value   Json?
+  new_value   Json?
+  ip_address  String?
+  user_agent  String?
+  created_at  DateTime @default(now())
+
+  // Relations
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+  user   User?  @relation(fields: [user_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([user_id])
+  @@index([resource, resource_id])
+  @@index([action])
+  @@index([created_at])
+  @@map("audit_logs")
+}
+
+// ============================================================
+// ORGANIZATIONS
+// ============================================================
+
+model Organization {
+  id           String    @id @default(cuid())
+  tenant_id    String    @unique
+  legal_name   String
+  trade_name   String?
+  cnpj         String?   @unique
+  type         TenantType
+  founded_at   DateTime?
+  mission      String?
+  vision       String?
+  values       String?
+  address      Json?
+  social_links Json?     @default("{}")
+  bank_accounts Json?    @default("[]")
+  certificates Json?     @default("[]")
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  // Relations
+  tenant    Tenant                 @relation(fields: [tenant_id], references: [id])
+  documents OrganizationDocument[]
+
+  @@index([tenant_id])
+  @@index([cnpj])
+  @@map("organizations")
+}
+
+model OrganizationDocument {
+  id          String                     @id @default(cuid())
+  org_id      String
+  type        String
+  name        String
+  file_url    String
+  issued_at   DateTime?
+  expires_at  DateTime?
+  status      OrganizationDocumentStatus @default(VALIDO)
+  created_at  DateTime                   @default(now())
+
+  // Relations
+  organization Organization @relation(fields: [org_id], references: [id])
+
+  @@index([org_id])
+  @@index([status])
+  @@index([expires_at])
+  @@map("organization_documents")
+}
+
+// ============================================================
+// PROJECTS
+// ============================================================
+
+model Project {
+  id               String        @id @default(cuid())
+  tenant_id        String
+  code             String?
+  name             String
+  description      String?
+  type             ProjectType
+  status           ProjectStatus @default(RASCUNHO)
+  start_date       DateTime?
+  end_date         DateTime?
+  total_budget     Decimal?      @db.Decimal(18, 2)
+  approved_budget  Decimal?      @db.Decimal(18, 2)
+  funding_sources  Json?         @default("[]")
+  tags             String[]      @default([])
+  manager_id       String?
+  created_by       String?
+  created_at       DateTime      @default(now())
+  updated_at       DateTime      @updatedAt
+  deleted_at       DateTime?
+
+  // Relations
+  tenant                 Tenant                 @relation(fields: [tenant_id], references: [id])
+  manager                User?                  @relation("ProjectManager", fields: [manager_id], references: [id])
+  creator                User?                  @relation("ProjectCreator", fields: [created_by], references: [id])
+  members                ProjectMember[]
+  phases                 ProjectPhase[]
+  tasks                  ProjectTask[]
+  risks                  ProjectRisk[]
+  indicators             ProjectIndicator[]
+  funding_applications   FundingApplication[]
+  convenios              Convenio[]
+  emendas                EmendaParlamentar[]
+  budgets                Budget[]
+  cost_centers           CostCenter[]
+  transactions           Transaction[]
+  documents              Document[]
+  accountability_reports AccountabilityReport[]
+  social_indicators      Indicator[]
+  beneficiaries          Beneficiary[]
+  activities             Activity[]
+  partnerships           Partnership[]
+  document_folders       DocumentFolder[]
+  compliance_checks      ComplianceCheck[]
+
+  @@unique([tenant_id, code])
+  @@index([tenant_id])
+  @@index([status])
+  @@index([type])
+  @@index([manager_id])
+  @@index([deleted_at])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id         String            @id @default(cuid())
+  project_id String
+  user_id    String
+  role       ProjectMemberRole @default(COLABORADOR)
+  start_date DateTime?
+  end_date   DateTime?
+  created_at DateTime          @default(now())
+
+  // Relations
+  project Project @relation(fields: [project_id], references: [id])
+  user    User    @relation(fields: [user_id], references: [id])
+
+  @@unique([project_id, user_id])
+  @@index([project_id])
+  @@index([user_id])
+  @@map("project_members")
+}
+
+model ProjectPhase {
+  id          String      @id @default(cuid())
+  project_id  String
+  name        String
+  description String?
+  order       Int
+  start_date  DateTime?
+  end_date    DateTime?
+  status      PhaseStatus @default(NAO_INICIADA)
+  created_at  DateTime    @default(now())
+
+  // Relations
+  project Project       @relation(fields: [project_id], references: [id])
+  tasks   ProjectTask[]
+
+  @@index([project_id])
+  @@index([status])
+  @@map("project_phases")
+}
+
+model ProjectTask {
+  id          String       @id @default(cuid())
+  project_id  String
+  phase_id    String?
+  title       String
+  description String?
+  assigned_to String?
+  due_date    DateTime?
+  status      TaskStatus   @default(PENDENTE)
+  priority    TaskPriority @default(MEDIA)
+  attachments Json?        @default("[]")
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @updatedAt
+
+  // Relations
+  project  Project       @relation(fields: [project_id], references: [id])
+  phase    ProjectPhase? @relation(fields: [phase_id], references: [id])
+  assignee User?         @relation(fields: [assigned_to], references: [id])
+
+  @@index([project_id])
+  @@index([phase_id])
+  @@index([assigned_to])
+  @@index([status])
+  @@index([priority])
+  @@index([due_date])
+  @@map("project_tasks")
+}
+
+model ProjectRisk {
+  id          String     @id @default(cuid())
+  project_id  String
+  title       String
+  description String?
+  category    String?
+  probability RiskLevel
+  impact      RiskLevel
+  mitigation  String?
+  status      RiskStatus @default(IDENTIFICADO)
+  owner_id    String?
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+
+  // Relations
+  project Project @relation(fields: [project_id], references: [id])
+  owner   User?   @relation(fields: [owner_id], references: [id])
+
+  @@index([project_id])
+  @@index([owner_id])
+  @@index([status])
+  @@map("project_risks")
+}
+
+model ProjectIndicator {
+  id            String    @id @default(cuid())
+  project_id    String
+  name          String
+  description   String?
+  unit          String?
+  baseline      Decimal?  @db.Decimal(18, 4)
+  target        Decimal?  @db.Decimal(18, 4)
+  current_value Decimal?  @db.Decimal(18, 4)
+  frequency     MeasurementFrequency?
+  last_updated  DateTime?
+  created_at    DateTime  @default(now())
+
+  // Relations
+  project Project @relation(fields: [project_id], references: [id])
+
+  @@index([project_id])
+  @@map("project_indicators")
+}
+
+// ============================================================
+// FUNDRAISING / CAPTAÇÃO
+// ============================================================
+
+model FundingOpportunity {
+  id            String                   @id @default(cuid())
+  tenant_id     String
+  title         String
+  description   String?
+  type          FundingOpportunityType
+  source_name   String?
+  source_url    String?
+  total_amount  Decimal?                 @db.Decimal(18, 2)
+  min_amount    Decimal?                 @db.Decimal(18, 2)
+  max_amount    Decimal?                 @db.Decimal(18, 2)
+  opens_at      DateTime?
+  closes_at     DateTime?
+  status        FundingOpportunityStatus @default(ABERTO)
+  requirements  Json?                    @default("{}")
+  areas         String[]                 @default([])
+  tags          String[]                 @default([])
+  created_at    DateTime                 @default(now())
+  updated_at    DateTime                 @updatedAt
+
+  // Relations
+  tenant       Tenant               @relation(fields: [tenant_id], references: [id])
+  applications FundingApplication[]
+
+  @@index([tenant_id])
+  @@index([type])
+  @@index([status])
+  @@index([closes_at])
+  @@map("funding_opportunities")
+}
+
+model FundingApplication {
+  id              String                   @id @default(cuid())
+  tenant_id       String
+  project_id      String?
+  opportunity_id  String?
+  title           String
+  status          FundingApplicationStatus @default(RASCUNHO)
+  submitted_at    DateTime?
+  result_at       DateTime?
+  approved_amount Decimal?                 @db.Decimal(18, 2)
+  notes           String?
+  documents       Json?                    @default("[]")
+  created_at      DateTime                 @default(now())
+  updated_at      DateTime                 @updatedAt
+
+  // Relations
+  tenant      Tenant              @relation(fields: [tenant_id], references: [id])
+  project     Project?            @relation(fields: [project_id], references: [id])
+  opportunity FundingOpportunity? @relation(fields: [opportunity_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([project_id])
+  @@index([opportunity_id])
+  @@index([status])
+  @@map("funding_applications")
+}
+
+model IncentiveLaw {
+  id                String           @id @default(cuid())
+  tenant_id         String
+  name              String
+  type              IncentiveLawType
+  description       String?
+  fiscal_benefit_pct Decimal?        @db.Decimal(5, 2)
+  max_amount        Decimal?         @db.Decimal(18, 2)
+  min_amount        Decimal?         @db.Decimal(18, 2)
+  eligible_areas    String[]         @default([])
+  requirements      Json?            @default("{}")
+  valid_from        DateTime?
+  valid_until       DateTime?
+  status            String?
+  created_at        DateTime         @default(now())
+
+  // Relations
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([type])
+  @@index([status])
+  @@map("incentive_laws")
+}
+
+model Convenio {
+  id                String         @id @default(cuid())
+  tenant_id         String
+  project_id        String?
+  number            String?
+  concedente        String
+  interveniente     String?
+  object            String
+  total_value       Decimal        @db.Decimal(18, 2)
+  counterpart_value Decimal?       @db.Decimal(18, 2)
+  start_date        DateTime?
+  end_date          DateTime?
+  status            ConvenioStatus @default(PROPOSTA)
+  siconv_id         String?
+  bank_account      Json?
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+
+  // Relations
+  tenant  Tenant   @relation(fields: [tenant_id], references: [id])
+  project Project? @relation(fields: [project_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([project_id])
+  @@index([status])
+  @@index([number])
+  @@map("convenios")
+}
+
+model EmendaParlamentar {
+  id                String       @id @default(cuid())
+  tenant_id         String
+  project_id        String?
+  number            String?
+  year              Int
+  parlamentar_name  String
+  parlamentar_party String?
+  type              EmendaType
+  value             Decimal      @db.Decimal(18, 2)
+  status            EmendaStatus @default(INDICADA)
+  object            String?
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+
+  // Relations
+  tenant  Tenant   @relation(fields: [tenant_id], references: [id])
+  project Project? @relation(fields: [project_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([project_id])
+  @@index([status])
+  @@index([year])
+  @@map("emendas_parlamentares")
+}
+
+// ============================================================
+// FINANCIAL MANAGEMENT
+// ============================================================
+
+model Budget {
+  id                String       @id @default(cuid())
+  tenant_id         String
+  project_id        String?
+  funding_source_id String?
+  fiscal_year       Int
+  total_amount      Decimal      @db.Decimal(18, 2)
+  allocated         Decimal      @default(0) @db.Decimal(18, 2)
+  committed         Decimal      @default(0) @db.Decimal(18, 2)
+  spent             Decimal      @default(0) @db.Decimal(18, 2)
+  balance           Decimal      @db.Decimal(18, 2)
+  status            BudgetStatus @default(ATIVO)
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+
+  // Relations
+  tenant     Tenant           @relation(fields: [tenant_id], references: [id])
+  project    Project?         @relation(fields: [project_id], references: [id])
+  categories BudgetCategory[]
+
+  @@index([tenant_id])
+  @@index([project_id])
+  @@index([fiscal_year])
+  @@index([status])
+  @@map("budgets")
+}
+
+model BudgetCategory {
+  id               String   @id @default(cuid())
+  budget_id        String
+  name             String
+  code             String?
+  planned_amount   Decimal  @db.Decimal(18, 2)
+  committed_amount Decimal  @default(0) @db.Decimal(18, 2)
+  spent_amount     Decimal  @default(0) @db.Decimal(18, 2)
+  created_at       DateTime @default(now())
+
+  // Relations
+  budget Budget       @relation(fields: [budget_id], references: [id])
+  items  BudgetItem[]
+
+  @@index([budget_id])
+  @@map("budget_categories")
+}
+
+model BudgetItem {
+  id          String   @id @default(cuid())
+  category_id String
+  description String
+  quantity    Decimal  @db.Decimal(12, 4)
+  unit        String?
+  unit_value  Decimal  @db.Decimal(18, 2)
+  total_value Decimal  @db.Decimal(18, 2)
+  spent_value Decimal  @default(0) @db.Decimal(18, 2)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  category BudgetCategory @relation(fields: [category_id], references: [id])
+
+  @@index([category_id])
+  @@map("budget_items")
+}
+
+model CostCenter {
+  id          String   @id @default(cuid())
+  tenant_id   String
+  code        String?
+  name        String
+  description String?
+  parent_id   String?
+  type        String?
+  project_id  String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  tenant       Tenant       @relation(fields: [tenant_id], references: [id])
+  parent       CostCenter?  @relation("CostCenterHierarchy", fields: [parent_id], references: [id])
+  children     CostCenter[] @relation("CostCenterHierarchy")
+  project      Project?     @relation(fields: [project_id], references: [id])
+  transactions Transaction[]
+
+  @@unique([tenant_id, code])
+  @@index([tenant_id])
+  @@index([parent_id])
+  @@index([project_id])
+  @@map("cost_centers")
+}
+
+model Transaction {
+  id               String            @id @default(cuid())
+  tenant_id        String
+  project_id       String?
+  cost_center_id   String?
+  type             TransactionType
+  status           TransactionStatus @default(PENDENTE)
+  description      String
+  amount           Decimal           @db.Decimal(18, 2)
+  date             DateTime
+  due_date         DateTime?
+  paid_at          DateTime?
+  payment_method   String?
+  reference_number String?
+  category         String?
+  tags             String[]          @default([])
+  attachments      Json?             @default("[]")
+  created_by       String?
+  approved_by      String?
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+
+  // Relations
+  tenant             Tenant           @relation(fields: [tenant_id], references: [id])
+  project            Project?         @relation(fields: [project_id], references: [id])
+  cost_center        CostCenter?      @relation(fields: [cost_center_id], references: [id])
+  creator            User?            @relation("TransactionCreator", fields: [created_by], references: [id])
+  approver           User?            @relation("TransactionApprover", fields: [approved_by], references: [id])
+  payment_orders     PaymentOrder[]
+  invoices           Invoice[]
+  accountability_items AccountabilityItem[]
+  matched_statements AccountStatement[]
+
+  @@index([tenant_id])
+  @@index([project_id])
+  @@index([cost_center_id])
+  @@index([type])
+  @@index([status])
+  @@index([date])
+  @@index([created_by])
+  @@map("transactions")
+}
+
+model PaymentOrder {
+  id                String   @id @default(cuid())
+  tenant_id         String
+  transaction_id    String?
+  supplier_name     String
+  supplier_cnpj_cpf String?
+  amount            Decimal  @db.Decimal(18, 2)
+  due_date          DateTime
+  status            String
+  bank_data         Json?
+  approved_by       String?
+  paid_at           DateTime?
+  created_at        DateTime @default(now())
+
+  // Relations
+  tenant      Tenant       @relation(fields: [tenant_id], references: [id])
+  transaction Transaction? @relation(fields: [transaction_id], references: [id])
+  approver    User?        @relation(fields: [approved_by], references: [id])
+
+  @@index([tenant_id])
+  @@index([transaction_id])
+  @@index([status])
+  @@index([due_date])
+  @@map("payment_orders")
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  tenant_id       String
+  transaction_id  String?
+  number          String?
+  supplier_name   String
+  supplier_cnpj   String?
+  issue_date      DateTime
+  amount          Decimal       @db.Decimal(18, 2)
+  tax_amount      Decimal?      @db.Decimal(18, 2)
+  net_amount      Decimal?      @db.Decimal(18, 2)
+  file_url        String?
+  status          InvoiceStatus @default(PENDENTE)
+  validated_by    String?
+  notes           String?
+  created_at      DateTime      @default(now())
+
+  // Relations
+  tenant      Tenant       @relation(fields: [tenant_id], references: [id])
+  transaction Transaction? @relation(fields: [transaction_id], references: [id])
+  validator   User?        @relation(fields: [validated_by], references: [id])
+
+  @@index([tenant_id])
+  @@index([transaction_id])
+  @@index([status])
+  @@index([issue_date])
+  @@map("invoices")
+}
+
+model BankReconciliation {
+  id               String    @id @default(cuid())
+  tenant_id        String
+  account_id       String
+  period_start     DateTime
+  period_end       DateTime
+  opening_balance  Decimal   @db.Decimal(18, 2)
+  closing_balance  Decimal   @db.Decimal(18, 2)
+  status           String
+  reconciled_by    String?
+  created_at       DateTime  @default(now())
+
+  // Relations
+  tenant     Tenant           @relation(fields: [tenant_id], references: [id])
+  statements AccountStatement[]
+
+  @@index([tenant_id])
+  @@index([account_id])
+  @@index([period_start, period_end])
+  @@index([status])
+  @@map("bank_reconciliations")
+}
+
+model AccountStatement {
+  id                     String    @id @default(cuid())
+  reconciliation_id      String
+  date                   DateTime
+  description            String
+  amount                 Decimal   @db.Decimal(18, 2)
+  type                   String
+  matched_transaction_id String?
+  created_at             DateTime  @default(now())
+
+  // Relations
+  reconciliation       BankReconciliation @relation(fields: [reconciliation_id], references: [id])
+  matched_transaction  Transaction?       @relation(fields: [matched_transaction_id], references: [id])
+
+  @@index([reconciliation_id])
+  @@index([matched_transaction_id])
+  @@index([date])
+  @@map("account_statements")
+}
+
+// ============================================================
+// DOCUMENT MANAGEMENT
+// ============================================================
+
+model Document {
+  id          String         @id @default(cuid())
+  tenant_id   String
+  project_id  String?
+  name        String
+  description String?
+  type        DocumentType
+  status      DocumentStatus @default(RASCUNHO)
+  file_url    String?
+  file_size   BigInt?
+  mime_type   String?
+  version     Int            @default(1)
+  parent_id   String?
+  tags        String[]       @default([])
+  metadata    Json?          @default("{}")
+  created_by  String?
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @updatedAt
+  deleted_at  DateTime?
+
+  // Relations
+  tenant     Tenant              @relation(fields: [tenant_id], references: [id])
+  project    Project?            @relation(fields: [project_id], references: [id])
+  creator    User?               @relation("DocumentCreator", fields: [created_by], references: [id])
+  parent     Document?           @relation("DocumentVersions", fields: [parent_id], references: [id])
+  children   Document[]          @relation("DocumentVersions")
+  versions   DocumentVersion[]
+  signatures DocumentSignature[]
+  embeddings DocumentEmbedding[]
+
+  @@index([tenant_id])
+  @@index([project_id])
+  @@index([type])
+  @@index([status])
+  @@index([parent_id])
+  @@index([deleted_at])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id                  String   @id @default(cuid())
+  document_id         String
+  version             Int
+  file_url            String
+  changes_description String?
+  created_by          String?
+  created_at          DateTime @default(now())
+
+  // Relations
+  document Document @relation(fields: [document_id], references: [id])
+  creator  User?    @relation(fields: [created_by], references: [id])
+
+  @@index([document_id])
+  @@index([created_by])
+  @@map("document_versions")
+}
+
+model DocumentSignature {
+  id           String          @id @default(cuid())
+  document_id  String
+  signer_name  String
+  signer_email String
+  signer_cpf   String?
+  role         String?
+  status       SignatureStatus @default(PENDENTE)
+  signed_at    DateTime?
+  ip_address   String?
+  certificate  Json?
+  created_at   DateTime        @default(now())
+
+  // Relations
+  document Document @relation(fields: [document_id], references: [id])
+
+  @@index([document_id])
+  @@index([status])
+  @@index([signer_email])
+  @@map("document_signatures")
+}
+
+model DocumentFolder {
+  id          String    @id @default(cuid())
+  tenant_id   String
+  name        String
+  parent_id   String?
+  project_id  String?
+  description String?
+  created_at  DateTime  @default(now())
+
+  // Relations
+  tenant   Tenant          @relation(fields: [tenant_id], references: [id])
+  parent   DocumentFolder? @relation("FolderHierarchy", fields: [parent_id], references: [id])
+  children DocumentFolder[] @relation("FolderHierarchy")
+  project  Project?        @relation(fields: [project_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([parent_id])
+  @@index([project_id])
+  @@map("document_folders")
+}
+
+// ============================================================
+// ACCOUNTABILITY / PRESTAÇÃO DE CONTAS
+// ============================================================
+
+model AccountabilityReport {
+  id                String                     @id @default(cuid())
+  tenant_id         String
+  project_id        String?
+  funding_source_id String?
+  title             String
+  period_start      DateTime
+  period_end        DateTime
+  type              AccountabilityReportType
+  status            AccountabilityReportStatus @default(RASCUNHO)
+  total_received    Decimal?                   @db.Decimal(18, 2)
+  total_spent       Decimal?                   @db.Decimal(18, 2)
+  balance           Decimal?                   @db.Decimal(18, 2)
+  submitted_at      DateTime?
+  approved_at       DateTime?
+  notes             String?
+  created_by        String?
+  created_at        DateTime                   @default(now())
+  updated_at        DateTime                   @updatedAt
+
+  // Relations
+  tenant  Tenant                 @relation(fields: [tenant_id], references: [id])
+  project Project?               @relation(fields: [project_id], references: [id])
+  creator User?                  @relation("AccountabilityReportCreator", fields: [created_by], references: [id])
+  items   AccountabilityItem[]
+  glosses AccountabilityGloss[]
+
+  @@index([tenant_id])
+  @@index([project_id])
+  @@index([type])
+  @@index([status])
+  @@index([period_start, period_end])
+  @@map("accountability_reports")
+}
+
+model AccountabilityItem {
+  id             String    @id @default(cuid())
+  report_id      String
+  transaction_id String?
+  description    String
+  amount         Decimal   @db.Decimal(18, 2)
+  category       String?
+  document_ids   String[]  @default([])
+  notes          String?
+  status         String?
+  created_at     DateTime  @default(now())
+
+  // Relations
+  report      AccountabilityReport @relation(fields: [report_id], references: [id])
+  transaction Transaction?         @relation(fields: [transaction_id], references: [id])
+  glosses     AccountabilityGloss[]
+
+  @@index([report_id])
+  @@index([transaction_id])
+  @@map("accountability_items")
+}
+
+model AccountabilityGloss {
+  id        String      @id @default(cuid())
+  report_id String
+  item_id   String?
+  amount    Decimal     @db.Decimal(18, 2)
+  reason    String
+  response  String?
+  status    GlossStatus @default(PENDENTE)
+  created_at DateTime   @default(now())
+
+  // Relations
+  report AccountabilityReport @relation(fields: [report_id], references: [id])
+  item   AccountabilityItem?  @relation(fields: [item_id], references: [id])
+
+  @@index([report_id])
+  @@index([item_id])
+  @@index([status])
+  @@map("accountability_glosses")
+}
+
+// ============================================================
+// SOCIAL INDICATORS
+// ============================================================
+
+model Indicator {
+  id                 String               @id @default(cuid())
+  tenant_id          String
+  project_id         String?
+  name               String
+  description        String?
+  code               String?
+  type               IndicatorType
+  unit               String?
+  calculation_method String?
+  data_source        String?
+  frequency          MeasurementFrequency
+  baseline           Decimal?             @db.Decimal(18, 4)
+  target             Decimal?             @db.Decimal(18, 4)
+  created_by         String?
+  created_at         DateTime             @default(now())
+  updated_at         DateTime             @updatedAt
+
+  // Relations
+  tenant       Tenant                  @relation(fields: [tenant_id], references: [id])
+  project      Project?                @relation(fields: [project_id], references: [id])
+  creator      User?                   @relation(fields: [created_by], references: [id])
+  measurements IndicatorMeasurement[]
+
+  @@unique([tenant_id, code])
+  @@index([tenant_id])
+  @@index([project_id])
+  @@index([type])
+  @@map("indicators")
+}
+
+model IndicatorMeasurement {
+  id           String    @id @default(cuid())
+  indicator_id String
+  value        Decimal   @db.Decimal(18, 4)
+  date         DateTime
+  notes        String?
+  evidence_url String?
+  verified_by  String?
+  created_at   DateTime  @default(now())
+
+  // Relations
+  indicator Indicator @relation(fields: [indicator_id], references: [id])
+  verifier  User?     @relation("MeasurementVerifier", fields: [verified_by], references: [id])
+
+  @@index([indicator_id])
+  @@index([date])
+  @@index([verified_by])
+  @@map("indicator_measurements")
+}
+
+model Beneficiary {
+  id                  String            @id @default(cuid())
+  tenant_id           String
+  project_id          String?
+  name                String
+  cpf                 String?
+  birth_date          DateTime?
+  gender              Gender?
+  race                Race?
+  social_vulnerability Json?
+  address             Json?
+  contact             Json?
+  status              BeneficiaryStatus @default(ATIVO)
+  enrollment_date     DateTime?
+  exit_date           DateTime?
+  exit_reason         String?
+  created_at          DateTime          @default(now())
+  updated_at          DateTime          @updatedAt
+
+  // Relations
+  tenant     Tenant               @relation(fields: [tenant_id], references: [id])
+  project    Project?             @relation(fields: [project_id], references: [id])
+  activities BeneficiaryActivity[]
+  enrollments ActivityEnrollment[]
+  attendances ActivityAttendance[]
+
+  @@unique([tenant_id, cpf])
+  @@index([tenant_id])
+  @@index([project_id])
+  @@index([status])
+  @@index([cpf])
+  @@map("beneficiaries")
+}
+
+model BeneficiaryActivity {
+  id             String   @id @default(cuid())
+  beneficiary_id String
+  activity_id    String
+  attended_at    DateTime
+  notes          String?
+  created_at     DateTime @default(now())
+
+  // Relations
+  beneficiary Beneficiary @relation(fields: [beneficiary_id], references: [id])
+  activity    Activity    @relation(fields: [activity_id], references: [id])
+
+  @@index([beneficiary_id])
+  @@index([activity_id])
+  @@map("beneficiary_activities")
+}
+
+// ============================================================
+// EVENTS & ACTIVITIES
+// ============================================================
+
+model Activity {
+  id             String         @id @default(cuid())
+  tenant_id      String
+  project_id     String?
+  title          String
+  description    String?
+  type           ActivityType
+  status         ActivityStatus @default(AGENDADA)
+  start_at       DateTime
+  end_at         DateTime?
+  location       Json?
+  capacity       Int?
+  enrolled_count Int            @default(0)
+  responsible_id String?
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+
+  // Relations
+  tenant               Tenant               @relation(fields: [tenant_id], references: [id])
+  project              Project?             @relation(fields: [project_id], references: [id])
+  responsible          User?                @relation(fields: [responsible_id], references: [id])
+  beneficiary_activities BeneficiaryActivity[]
+  enrollments          ActivityEnrollment[]
+  attendances          ActivityAttendance[]
+
+  @@index([tenant_id])
+  @@index([project_id])
+  @@index([type])
+  @@index([status])
+  @@index([start_at])
+  @@index([responsible_id])
+  @@map("activities")
+}
+
+model ActivityEnrollment {
+  id             String           @id @default(cuid())
+  activity_id    String
+  beneficiary_id String
+  status         EnrollmentStatus @default(INSCRITO)
+  enrolled_at    DateTime         @default(now())
+  created_at     DateTime         @default(now())
+
+  // Relations
+  activity    Activity    @relation(fields: [activity_id], references: [id])
+  beneficiary Beneficiary @relation(fields: [beneficiary_id], references: [id])
+
+  @@unique([activity_id, beneficiary_id])
+  @@index([activity_id])
+  @@index([beneficiary_id])
+  @@index([status])
+  @@map("activity_enrollments")
+}
+
+model ActivityAttendance {
+  id             String    @id @default(cuid())
+  activity_id    String
+  beneficiary_id String
+  attended_at    DateTime
+  notes          String?
+  created_at     DateTime  @default(now())
+
+  // Relations
+  activity    Activity    @relation(fields: [activity_id], references: [id])
+  beneficiary Beneficiary @relation(fields: [beneficiary_id], references: [id])
+
+  @@unique([activity_id, beneficiary_id])
+  @@index([activity_id])
+  @@index([beneficiary_id])
+  @@map("activity_attendances")
+}
+
+// ============================================================
+// PARTNERS & CRM
+// ============================================================
+
+model Partner {
+  id         String        @id @default(cuid())
+  tenant_id  String
+  name       String
+  type       PartnerType
+  cnpj_cpf   String?
+  email      String?
+  phone      String?
+  website    String?
+  address    Json?
+  status     PartnerStatus @default(PROSPECTO)
+  tags       String[]      @default([])
+  notes      String?
+  created_at DateTime      @default(now())
+  updated_at DateTime      @updatedAt
+
+  // Relations
+  tenant       Tenant         @relation(fields: [tenant_id], references: [id])
+  contacts     PartnerContact[]
+  partnerships Partnership[]
+  sponsors     Sponsor[]
+
+  @@index([tenant_id])
+  @@index([type])
+  @@index([status])
+  @@index([cnpj_cpf])
+  @@map("partners")
+}
+
+model PartnerContact {
+  id         String   @id @default(cuid())
+  partner_id String
+  name       String
+  role       String?
+  email      String?
+  phone      String?
+  is_primary Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  // Relations
+  partner Partner @relation(fields: [partner_id], references: [id])
+
+  @@index([partner_id])
+  @@map("partner_contacts")
+}
+
+model Partnership {
+  id            String            @id @default(cuid())
+  tenant_id     String
+  partner_id    String
+  project_id    String?
+  type          PartnershipType
+  value         Decimal?          @db.Decimal(18, 2)
+  in_kind_value Decimal?          @db.Decimal(18, 2)
+  description   String?
+  start_date    DateTime?
+  end_date      DateTime?
+  status        PartnershipStatus @default(PROPOSTA)
+  contract_url  String?
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @updatedAt
+
+  // Relations
+  tenant  Tenant   @relation(fields: [tenant_id], references: [id])
+  partner Partner  @relation(fields: [partner_id], references: [id])
+  project Project? @relation(fields: [project_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([partner_id])
+  @@index([project_id])
+  @@index([type])
+  @@index([status])
+  @@map("partnerships")
+}
+
+model Sponsor {
+  id                String       @id @default(cuid())
+  tenant_id         String
+  partner_id        String?
+  name              String
+  logo_url          String?
+  website           String?
+  tier              SponsorTier
+  investment_amount Decimal?     @db.Decimal(18, 2)
+  benefits          Json?        @default("{}")
+  start_date        DateTime?
+  end_date          DateTime?
+  status            SponsorStatus @default(PROSPECTO)
+  project_ids       String[]     @default([])
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+
+  // Relations
+  tenant  Tenant   @relation(fields: [tenant_id], references: [id])
+  partner Partner? @relation(fields: [partner_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([partner_id])
+  @@index([tier])
+  @@index([status])
+  @@map("sponsors")
+}
+
+// ============================================================
+// WORKFLOWS & APPROVALS
+// ============================================================
+
+model WorkflowTemplate {
+  id          String   @id @default(cuid())
+  tenant_id   String
+  name        String
+  description String?
+  type        String
+  steps       Json     @default("[]")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  tenant    Tenant             @relation(fields: [tenant_id], references: [id])
+  instances WorkflowInstance[]
+
+  @@unique([tenant_id, name])
+  @@index([tenant_id])
+  @@index([type])
+  @@map("workflow_templates")
+}
+
+model WorkflowInstance {
+  id            String         @id @default(cuid())
+  template_id   String?
+  tenant_id     String
+  resource_type String
+  resource_id   String
+  status        WorkflowStatus @default(PENDENTE)
+  current_step  Int            @default(0)
+  started_by    String?
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+
+  // Relations
+  tenant    Tenant             @relation(fields: [tenant_id], references: [id])
+  template  WorkflowTemplate?  @relation(fields: [template_id], references: [id])
+  starter   User?              @relation("WorkflowStarter", fields: [started_by], references: [id])
+  approvals WorkflowApproval[]
+
+  @@index([tenant_id])
+  @@index([template_id])
+  @@index([resource_type, resource_id])
+  @@index([status])
+  @@map("workflow_instances")
+}
+
+model WorkflowApproval {
+  id          String         @id @default(cuid())
+  instance_id String
+  step        Int
+  approver_id String?
+  status      ApprovalStatus @default(PENDENTE)
+  notes       String?
+  decided_at  DateTime?
+  created_at  DateTime       @default(now())
+
+  // Relations
+  instance WorkflowInstance @relation(fields: [instance_id], references: [id])
+  approver User?            @relation(fields: [approver_id], references: [id])
+
+  @@index([instance_id])
+  @@index([approver_id])
+  @@index([status])
+  @@map("workflow_approvals")
+}
+
+// ============================================================
+// COMPLIANCE & LEGAL
+// ============================================================
+
+model LegalRequirement {
+  id              String   @id @default(cuid())
+  tenant_id       String
+  name            String
+  description     String?
+  law_reference   String?
+  type            String?
+  applicable_to   String[] @default([])
+  due_date_rule   String?
+  created_at      DateTime @default(now())
+
+  // Relations
+  tenant           Tenant            @relation(fields: [tenant_id], references: [id])
+  compliance_checks ComplianceCheck[]
+
+  @@index([tenant_id])
+  @@index([type])
+  @@map("legal_requirements")
+}
+
+model ComplianceCheck {
+  id              String           @id @default(cuid())
+  tenant_id       String
+  requirement_id  String?
+  project_id      String?
+  status          ComplianceStatus @default(PENDENTE)
+  evidence_url    String?
+  notes           String?
+  checked_by      String?
+  checked_at      DateTime?
+  next_check_at   DateTime?
+  created_at      DateTime         @default(now())
+
+  // Relations
+  tenant      Tenant           @relation(fields: [tenant_id], references: [id])
+  requirement LegalRequirement? @relation(fields: [requirement_id], references: [id])
+  project     Project?          @relation(fields: [project_id], references: [id])
+  checker     User?             @relation("ComplianceChecker", fields: [checked_by], references: [id])
+
+  @@index([tenant_id])
+  @@index([requirement_id])
+  @@index([project_id])
+  @@index([status])
+  @@index([next_check_at])
+  @@map("compliance_checks")
+}
+
+model LGPDConsent {
+  id                String            @id @default(cuid())
+  tenant_id         String
+  data_subject_id   String
+  data_subject_type String
+  purpose           String
+  status            LGPDConsentStatus @default(ATIVO)
+  consented_at      DateTime          @default(now())
+  revoked_at        DateTime?
+  ip_address        String?
+  created_at        DateTime          @default(now())
+
+  // Relations
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([data_subject_id, data_subject_type])
+  @@index([status])
+  @@map("lgpd_consents")
+}
+
+// ============================================================
+// AI OPERATIONS
+// ============================================================
+
+model AIAgent {
+  id         String        @id @default(cuid())
+  tenant_id  String
+  type       AIAgentType
+  name       String
+  status     AIAgentStatus @default(ACTIVE)
+  config     Json          @default("{}")
+  model      String?
+  created_at DateTime      @default(now())
+  updated_at DateTime      @updatedAt
+
+  // Relations
+  tenant        Tenant           @relation(fields: [tenant_id], references: [id])
+  conversations AIConversation[]
+  tasks         AITask[]
+
+  @@index([tenant_id])
+  @@index([type])
+  @@index([status])
+  @@map("ai_agents")
+}
+
+model AIConversation {
+  id           String   @id @default(cuid())
+  tenant_id    String
+  user_id      String?
+  agent_id     String?
+  context_type String?
+  context_id   String?
+  messages     Json     @default("[]")
+  tokens_used  Int      @default(0)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // Relations
+  tenant Tenant   @relation(fields: [tenant_id], references: [id])
+  user   User?    @relation(fields: [user_id], references: [id])
+  agent  AIAgent? @relation(fields: [agent_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([user_id])
+  @@index([agent_id])
+  @@index([context_type, context_id])
+  @@map("ai_conversations")
+}
+
+model AITask {
+  id          String      @id @default(cuid())
+  tenant_id   String
+  agent_id    String?
+  type        String
+  status      AITaskStatus @default(PENDING)
+  input       Json?
+  output      Json?
+  tokens_used Int          @default(0)
+  error       String?
+  started_at  DateTime?
+  completed_at DateTime?
+  created_at  DateTime     @default(now())
+
+  // Relations
+  tenant Tenant   @relation(fields: [tenant_id], references: [id])
+  agent  AIAgent? @relation(fields: [agent_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([agent_id])
+  @@index([type])
+  @@index([status])
+  @@index([created_at])
+  @@map("ai_tasks")
+}
+
+model DocumentEmbedding {
+  id          String   @id @default(cuid())
+  tenant_id   String
+  document_id String?
+  chunk_index Int
+  content     String
+  embedding   Unsupported("vector(1536)")?
+  metadata    Json?    @default("{}")
+  created_at  DateTime @default(now())
+
+  // Relations
+  tenant   Tenant    @relation(fields: [tenant_id], references: [id])
+  document Document? @relation(fields: [document_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([document_id])
+  @@map("document_embeddings")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id         String              @id @default(cuid())
+  tenant_id  String
+  user_id    String?
+  type       String
+  title      String
+  body       String
+  data       Json?               @default("{}")
+  channel    NotificationChannel @default(IN_APP)
+  status     NotificationStatus  @default(PENDING)
+  sent_at    DateTime?
+  read_at    DateTime?
+  created_at DateTime            @default(now())
+
+  // Relations
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+  user   User?  @relation(fields: [user_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([user_id])
+  @@index([type])
+  @@index([channel])
+  @@index([status])
+  @@index([created_at])
+  @@map("notifications")
+}
+
+model NotificationTemplate {
+  id            String   @id @default(cuid())
+  tenant_id     String
+  name          String
+  type          String
+  subject       String?
+  body_template String
+  channels      String[] @default([])
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  @@unique([tenant_id, name])
+  @@index([tenant_id])
+  @@index([type])
+  @@map("notification_templates")
+}
+
+// ============================================================
+// SYSTEM SETTINGS
+// ============================================================
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  tenant_id   String
+  key         String
+  value       Json
+  description String?
+  updated_by  String?
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  tenant   Tenant @relation(fields: [tenant_id], references: [id])
+  updater  User?  @relation(fields: [updated_by], references: [id])
+
+  @@unique([tenant_id, key])
+  @@index([tenant_id])
+  @@index([key])
+  @@map("system_settings")
+}
+
+// ============================================================
+// USER INVITES
+// ============================================================
+
+model UserInvite {
+  id          String       @id @default(cuid())
+  tenant_id   String
+  email       String
+  role_id     String?
+  status      InviteStatus @default(PENDING)
+  token_hash  String       @unique
+  invited_by  String?
+  expires_at  DateTime
+  accepted_at DateTime?
+  created_at  DateTime     @default(now())
+
+  // Relations
+  tenant     Tenant  @relation(fields: [tenant_id], references: [id])
+  role       Role?   @relation(fields: [role_id], references: [id])
+  inviter    User?   @relation("InviteSender", fields: [invited_by], references: [id])
+
+  @@unique([tenant_id, email])
+  @@index([tenant_id])
+  @@index([token_hash])
+  @@index([status])
+  @@index([expires_at])
+  @@map("user_invites")
+}
