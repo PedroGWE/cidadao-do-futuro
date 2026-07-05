@@ -1,4 +1,4 @@
-import axios from 'axios'
+﻿import axios from 'axios'
 import Cookies from 'js-cookie'
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'
@@ -50,7 +50,7 @@ function clearAuthCookies() {
 }
 
 function redirectToLogin() {
-  if (typeof window !== 'undefined') window.location.href = '/auth/login'
+  if (typeof window !== 'undefined') window.location.href = '/login'
 }
 
 export default api

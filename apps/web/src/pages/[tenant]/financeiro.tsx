@@ -249,7 +249,7 @@ export default function FinanceiroPage() {
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
   if (!ctx.req.cookies['refresh_token']) {
-    return { redirect: { destination: '/auth/login', permanent: false } }
+    return { redirect: { destination: '/login', permanent: false } }
   }
   return { props: {} }
 }
