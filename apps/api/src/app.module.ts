@@ -9,6 +9,7 @@ import { TenantsModule } from './modules/tenants/tenants.module'
 import { ProjectsModule } from './modules/projects/projects.module'
 import { FinancialModule } from './modules/financial/financial.module'
 import { DocumentsModule } from './modules/documents/documents.module'
+import { OrganizationProfileModule } from './modules/organization-profile/organization-profile.module'
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard'
 import { RolesGuard } from './common/guards/roles.guard'
 
@@ -22,6 +23,7 @@ import { RolesGuard } from './common/guards/roles.guard'
     ProjectsModule,
     FinancialModule,
     DocumentsModule,
+    OrganizationProfileModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

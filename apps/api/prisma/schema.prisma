@@ -424,6 +424,26 @@ enum InviteStatus {
   REVOKED
 }
 
+enum OrgProfileType {
+  EXECUTOR_PROJETOS_SOCIAIS
+  OSC
+  INSTITUTO
+  FUNDACAO
+  ASSOCIACAO
+}
+
+enum ProfileDocType {
+  CPF
+  CNPJ
+}
+
+enum OrgAbrangencia {
+  MUNICIPAL
+  ESTADUAL
+  NACIONAL
+  INTERNACIONAL
+}
+
 // ============================================================
 // TENANT & IDENTITY
 // ============================================================
@@ -483,6 +503,7 @@ model Tenant {
   user_invites           UserInvite[]
   institutional_doc_categories InstitutionalDocCategory[]
   institutional_documents      InstitutionalDocument[]
+  organization_profile         OrganizationProfile?
 
   @@index([slug])
   @@index([cnpj])
@@ -1336,6 +1357,33 @@ model DocumentFolder {
   @@index([parent_id])
   @@index([project_id])
   @@map("document_folders")
+}
+
+// ============================================================
+// ORGANIZATION PROFILE (perfil para editais)
+// ============================================================
+
+model OrganizationProfile {
+  id               String          @id @default(cuid())
+  tenant_id        String          @unique
+  nome_organizacao String          @db.VarChar(100)
+  tipo_organizacao OrgProfileType?
+  tipo_documento   ProfileDocType?
+  documento        String? // apenas números (CPF 11 / CNPJ 14)
+  abrangencia      OrgAbrangencia?
+  areas_atuacao    String[]        @default([])
+  municipio        String?
+  uf               String?         @db.VarChar(2)
+  telefone         String?
+  email            String?
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  @@index([tenant_id])
+  @@map("organization_profiles")
 }
 
 // ============================================================

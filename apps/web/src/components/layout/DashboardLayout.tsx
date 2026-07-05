@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import {
+  Building2,
   LayoutDashboard,
   FolderKanban,
   Users,
@@ -20,6 +21,7 @@ const navItems = [
   { label: 'Projetos', icon: FolderKanban, href: 'projetos' },
   { label: 'Beneficiários', icon: Users, href: 'beneficiarios' },
   { label: 'Financeiro', icon: DollarSign, href: 'financeiro' },
+  { label: 'Dados Básicos', icon: Building2, href: 'institucional/dados-basicos' },
   { label: 'Documentos', icon: FolderArchive, href: 'institucional/documentos' },
   { label: 'Relatórios', icon: FileText, href: 'relatorios' },
   { label: 'Configurações', icon: Settings, href: 'configuracoes' },

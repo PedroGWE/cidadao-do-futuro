@@ -1,5 +1,6 @@
 export { z } from 'zod'
 export * from './documents'
+export * from './organization-profile'
 
 export const paginationSchema = {
   page: { type: 'number', minimum: 1, default: 1 },
