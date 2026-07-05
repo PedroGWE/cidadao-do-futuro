@@ -7,6 +7,7 @@ import {
   Users,
   DollarSign,
   FileText,
+  FolderArchive,
   Settings,
   LogOut,
   ChevronRight,
@@ -19,6 +20,7 @@ const navItems = [
   { label: 'Projetos', icon: FolderKanban, href: 'projetos' },
   { label: 'Beneficiários', icon: Users, href: 'beneficiarios' },
   { label: 'Financeiro', icon: DollarSign, href: 'financeiro' },
+  { label: 'Documentos', icon: FolderArchive, href: 'institucional/documentos' },
   { label: 'Relatórios', icon: FileText, href: 'relatorios' },
   { label: 'Configurações', icon: Settings, href: 'configuracoes' },
 ]

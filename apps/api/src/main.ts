@@ -1,6 +1,8 @@
 import 'reflect-metadata'
 import { NestFactory } from '@nestjs/core'
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify'
+import multipart from '@fastify/multipart'
+import { DOCUMENT_MAX_SIZE_BYTES } from '@cidadao/shared'
 import { ValidationPipe, VersioningType } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { AppModule } from './app.module'
@@ -14,6 +16,10 @@ async function bootstrap() {
   )
 
   const config = app.get(ConfigService<Env>)
+
+  await app.register(multipart, {
+    limits: { fileSize: DOCUMENT_MAX_SIZE_BYTES, files: 1 },
+  })
 
   app.setGlobalPrefix('api')
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' })

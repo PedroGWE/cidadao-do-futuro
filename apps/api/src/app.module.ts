@@ -8,6 +8,7 @@ import { UsersModule } from './modules/users/users.module'
 import { TenantsModule } from './modules/tenants/tenants.module'
 import { ProjectsModule } from './modules/projects/projects.module'
 import { FinancialModule } from './modules/financial/financial.module'
+import { DocumentsModule } from './modules/documents/documents.module'
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard'
 import { RolesGuard } from './common/guards/roles.guard'
 
@@ -20,6 +21,7 @@ import { RolesGuard } from './common/guards/roles.guard'
     TenantsModule,
     ProjectsModule,
     FinancialModule,
+    DocumentsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

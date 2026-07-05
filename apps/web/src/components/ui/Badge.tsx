@@ -14,6 +14,9 @@ const variants: Record<string, string> = {
   APROVADO_TX: 'bg-blue-100 text-blue-700',
   PAGO: 'bg-green-100 text-green-700',
   ESTORNADO: 'bg-red-100 text-red-600',
+  // documentos institucionais
+  VALIDO: 'bg-growth-100 text-growth-700',
+  VENCIDO: 'bg-red-100 text-red-600',
   // transaction type
   RECEITA: 'bg-emerald-100 text-emerald-700',
   DESPESA: 'bg-red-100 text-red-600',
@@ -30,6 +33,8 @@ const labels: Record<string, string> = {
   SUSPENSO: 'Suspenso',
   CANCELADO: 'Cancelado',
   PENDENTE: 'Pendente',
+  VALIDO: 'Válido',
+  VENCIDO: 'Vencido',
   PAGO: 'Pago',
   ESTORNADO: 'Estornado',
   RECEITA: 'Receita',

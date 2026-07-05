@@ -481,6 +481,8 @@ model Tenant {
   audit_logs             AuditLog[]
   document_folders       DocumentFolder[]
   user_invites           UserInvite[]
+  institutional_doc_categories InstitutionalDocCategory[]
+  institutional_documents      InstitutionalDocument[]
 
   @@index([slug])
   @@index([cnpj])
@@ -532,6 +534,7 @@ model User {
   approved_transactions  Transaction[]        @relation("TransactionApprover")
   approved_payment_orders PaymentOrder[]
   validated_invoices     Invoice[]
+  institutional_documents InstitutionalDocument[] @relation("InstitutionalDocUploader")
 
   @@unique([tenant_id, email])
   @@index([tenant_id])
@@ -1333,6 +1336,70 @@ model DocumentFolder {
   @@index([parent_id])
   @@index([project_id])
   @@map("document_folders")
+}
+
+// ============================================================
+// INSTITUTIONAL DOCUMENTS (repositório de documentos do tenant)
+// ============================================================
+
+model InstitutionalDocCategory {
+  id         String   @id @default(cuid())
+  tenant_id  String
+  name       String
+  order      Int      @default(0)
+  created_at DateTime @default(now())
+
+  // Relations
+  tenant Tenant                 @relation(fields: [tenant_id], references: [id])
+  types  InstitutionalDocType[]
+
+  @@unique([tenant_id, name])
+  @@index([tenant_id])
+  @@map("institutional_doc_categories")
+}
+
+model InstitutionalDocType {
+  id                    String   @id @default(cuid())
+  category_id           String
+  name                  String
+  required              Boolean  @default(false)
+  default_validity_days Int?
+  created_at            DateTime @default(now())
+
+  // Relations
+  category  InstitutionalDocCategory @relation(fields: [category_id], references: [id])
+  documents InstitutionalDocument[]
+
+  @@unique([category_id, name])
+  @@index([category_id])
+  @@map("institutional_doc_types")
+}
+
+model InstitutionalDocument {
+  id          String                     @id @default(cuid())
+  tenant_id   String
+  doc_type_id String
+  file_url    String
+  file_name   String
+  mime_type   String
+  size_bytes  Int
+  sent_at     DateTime                   @default(now())
+  valid_until DateTime?
+  status      OrganizationDocumentStatus @default(VALIDO)
+  uploaded_by String?
+  created_at  DateTime                   @default(now())
+  updated_at  DateTime                   @updatedAt
+
+  // Relations
+  tenant   Tenant               @relation(fields: [tenant_id], references: [id])
+  doc_type InstitutionalDocType @relation(fields: [doc_type_id], references: [id])
+  uploader User?                @relation("InstitutionalDocUploader", fields: [uploaded_by], references: [id])
+
+  @@unique([tenant_id, doc_type_id])
+  @@index([tenant_id])
+  @@index([status])
+  @@index([valid_until])
+  @@map("institutional_documents")
 }
 
 // ============================================================
