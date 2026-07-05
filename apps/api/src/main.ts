@@ -17,8 +17,13 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api')
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' })
+  const corsOrigins = config.get('CORS_ORIGINS')!.split(',')
   app.enableCors({
-    origin: config.get('CORS_ORIGINS')!.split(','),
+    // Em desenvolvimento, aceita qualquer porta de localhost/127.0.0.1
+    origin:
+      config.get('NODE_ENV') === 'development'
+        ? /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/
+        : corsOrigins,
     credentials: true,
   })
 
