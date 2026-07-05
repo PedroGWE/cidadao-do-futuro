@@ -64,7 +64,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-gray-100 px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-brand-800">Cidadão do Futuro</h1>
+          <img src="/logo.png" alt="Cidadão do Futuro" className="mx-auto h-28 w-auto" />
           <p className="text-gray-500 mt-1 text-sm">Gestão de projetos sociais</p>
         </div>
 

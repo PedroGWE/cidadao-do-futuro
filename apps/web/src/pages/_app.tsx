@@ -1,5 +1,6 @@
 import '@/styles/globals.css'
 import type { AppProps } from 'next/app'
+import Head from 'next/head'
 import { useEffect } from 'react'
 import Cookies from 'js-cookie'
 import api, { setAccessToken } from '@/lib/api'
@@ -29,5 +30,13 @@ export default function App({ Component, pageProps }: AppProps) {
     }
   }, [])
 
-  return <Component {...pageProps} />
+  return (
+    <>
+      <Head>
+        <title>Cidadão do Futuro</title>
+        <link rel="icon" href="/favicon.png" />
+      </Head>
+      <Component {...pageProps} />
+    </>
+  )
 }

@@ -31,8 +31,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen bg-gray-50">
       <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
-        <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <span className="font-bold text-brand-700 text-lg truncate">{tenant}</span>
+        <div className="h-16 flex items-center gap-2 px-6 border-b border-gray-200">
+          <img src="/logo.png" alt="Cidadão do Futuro" className="h-10 w-auto flex-shrink-0" />
+          <span className="font-bold text-brand-800 text-sm truncate">Cidadão do Futuro</span>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
