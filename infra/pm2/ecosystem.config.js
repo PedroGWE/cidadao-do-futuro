@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'cidadao-api',
-      cwd: '/home/pedro/cidadao_do_futuro/apps/api',
+      cwd: '/var/www/cidadao-futuro/apps/api',
       script: 'node',
       args: 'dist/main.js',
       env: {
@@ -16,7 +16,7 @@ module.exports = {
     },
     {
       name: 'cidadao-web',
-      cwd: '/home/pedro/cidadao_do_futuro/apps/web',
+      cwd: '/var/www/cidadao-futuro/apps/web',
       script: 'node',
       args: 'node_modules/.bin/next start -p 3000',
       env: {

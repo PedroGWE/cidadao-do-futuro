@@ -1,5 +1,16 @@
 # Deploy em Produção
 
+## Instalação atual (Hostinger)
+
+- Host: `72.60.248.57` (`projeto.gtmcorepro.com`).
+- Repositório: `/var/www/cidadao-futuro`.
+- Processos: `cidadao-api` e `cidadao-web` sob PM2.
+- PostgreSQL e Redis: serviços locais, sem publicação externa do banco.
+- HTTP/HTTPS: proxy reverso containerizado. O script somente recarrega Nginx quando o serviço do host estiver ativo.
+- Backups de deploy: `/var/backups/semevo/<data-hora>/` com dump, ambientes protegidos e release anterior.
+
+Nunca registre senha SSH ou conteúdo de `.env` neste documento ou no Git.
+
 ## Pré-requisitos no Servidor
 
 - Ubuntu 22.04 LTS (ou similar)
@@ -35,8 +46,8 @@ sudo apt-get install -y certbot python3-certbot-nginx
 
 ```bash
 # 1. Clonar o repositório
-git clone https://github.com/PedroGWE/cidadao-do-futuro.git /var/www/cidadao-do-futuro
-cd /var/www/cidadao-do-futuro
+git clone https://github.com/PedroGWE/cidadao-do-futuro.git /var/www/cidadao-futuro
+cd /var/www/cidadao-futuro
 
 # 2. Instalar dependências
 pnpm install --frozen-lockfile
@@ -51,7 +62,7 @@ pnpm build
 # 5. Rodar migrations (NUNCA use migrate dev em produção)
 cd apps/api
 npx prisma migrate deploy
-cd /var/www/cidadao-do-futuro
+cd /var/www/cidadao-futuro
 
 # 6. Iniciar com PM2
 pm2 start infra/pm2/ecosystem.config.js
@@ -98,11 +109,11 @@ CORS_ORIGINS=https://seu-dominio.com.br
 ## Atualização (Deploy Contínuo)
 
 ```bash
-cd /var/www/cidadao-do-futuro
+cd /var/www/cidadao-futuro
 git pull origin main
 pnpm install --frozen-lockfile
 pnpm build
-cd apps/api && npx prisma migrate deploy && cd /var/www/cidadao-do-futuro
+cd apps/api && npx prisma migrate deploy && cd /var/www/cidadao-futuro
 pm2 restart all
 ```
 
