@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useForm } from 'react-hook-form'
@@ -64,8 +65,8 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-gray-100 px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Cidadão do Futuro" className="mx-auto h-28 w-auto" />
-          <p className="text-gray-500 mt-1 text-sm">Gestão de projetos sociais</p>
+          <Image src="/brand/Semevo_Logo_Principal.png" alt="Semevo - Gestão que faz crescer" width={640} height={260} priority className="mx-auto" style={{ height: '7rem', width: 'auto' }} />
+          <p className="mt-2 text-sm font-medium tracking-wide text-brand-700">Gestão que faz crescer.</p>
         </div>
 
         <div className="card">

@@ -1,10 +1,10 @@
 // ============================================================
-// Cidadão do Futuro - Prisma Schema
+// Semevo - Prisma Schema
 // Brazilian Social Project Management Enterprise SaaS Platform
 // ============================================================
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
 }
 
 datasource db {
@@ -444,6 +444,75 @@ enum OrgAbrangencia {
   INTERNACIONAL
 }
 
+enum EditalFonte {
+  PNCP
+  MANUAL
+}
+
+enum SavedEditalStatus {
+  SALVO
+  EM_PREPARACAO
+  INSCRITO
+  APROVADO
+  REPROVADO
+  ENCERRADO
+}
+
+enum ParentescoType {
+  PAI
+  MAE
+  AVO
+  TIO
+  TUTOR_LEGAL
+  OUTRO
+}
+
+enum VinculoStatus {
+  ATIVO
+  INATIVO
+  DESLIGADO
+  EM_ESPERA
+}
+
+enum TipoVinculo {
+  VOLUNTARIO
+  CLT
+  AUTONOMO_PJ
+  PRESTADOR_SERVICO
+}
+
+enum ProfessorStatus {
+  ATIVO
+  INATIVO
+  AFASTADO
+  DESLIGADO
+}
+
+enum FormaPagamento {
+  PIX
+  TRANSFERENCIA
+  DINHEIRO
+  BOLETO
+}
+
+enum ConectaMatriculaStatus {
+  ATIVA
+  TRANCADA
+  CONCLUIDA
+}
+
+enum ConectaAtividadeStatus {
+  RASCUNHO
+  PUBLICADA
+  ENCERRADA
+}
+
+enum ConectaEntregaStatus {
+  PENDENTE
+  ENTREGUE
+  AVALIADA
+}
+
 // ============================================================
 // TENANT & IDENTITY
 // ============================================================
@@ -463,47 +532,56 @@ model Tenant {
   deleted_at DateTime?
 
   // Relations
-  users                  User[]
-  roles                  Role[]
-  organizations          Organization[]
-  projects               Project[]
-  funding_opportunities  FundingOpportunity[]
-  funding_applications   FundingApplication[]
-  incentive_laws         IncentiveLaw[]
-  convenios              Convenio[]
-  emendas                EmendaParlamentar[]
-  budgets                Budget[]
-  cost_centers           CostCenter[]
-  transactions           Transaction[]
-  payment_orders         PaymentOrder[]
-  invoices               Invoice[]
-  bank_reconciliations   BankReconciliation[]
-  documents              Document[]
-  accountability_reports AccountabilityReport[]
-  indicators             Indicator[]
-  beneficiaries          Beneficiary[]
-  activities             Activity[]
-  partners               Partner[]
-  partnerships           Partnership[]
-  sponsors               Sponsor[]
-  workflow_templates     WorkflowTemplate[]
-  workflow_instances     WorkflowInstance[]
-  legal_requirements     LegalRequirement[]
-  compliance_checks      ComplianceCheck[]
-  lgpd_consents          LGPDConsent[]
-  ai_agents              AIAgent[]
-  ai_conversations       AIConversation[]
-  ai_tasks               AITask[]
-  document_embeddings    DocumentEmbedding[]
-  notifications          Notification[]
-  notification_templates NotificationTemplate[]
-  system_settings        SystemSetting[]
-  audit_logs             AuditLog[]
-  document_folders       DocumentFolder[]
-  user_invites           UserInvite[]
+  users                        User[]
+  roles                        Role[]
+  organizations                Organization[]
+  projects                     Project[]
+  funding_opportunities        FundingOpportunity[]
+  funding_applications         FundingApplication[]
+  incentive_laws               IncentiveLaw[]
+  convenios                    Convenio[]
+  emendas                      EmendaParlamentar[]
+  budgets                      Budget[]
+  cost_centers                 CostCenter[]
+  transactions                 Transaction[]
+  payment_orders               PaymentOrder[]
+  invoices                     Invoice[]
+  bank_reconciliations         BankReconciliation[]
+  documents                    Document[]
+  accountability_reports       AccountabilityReport[]
+  indicators                   Indicator[]
+  beneficiaries                Beneficiary[]
+  activities                   Activity[]
+  partners                     Partner[]
+  partnerships                 Partnership[]
+  sponsors                     Sponsor[]
+  workflow_templates           WorkflowTemplate[]
+  workflow_instances           WorkflowInstance[]
+  legal_requirements           LegalRequirement[]
+  compliance_checks            ComplianceCheck[]
+  lgpd_consents                LGPDConsent[]
+  ai_agents                    AIAgent[]
+  ai_conversations             AIConversation[]
+  ai_tasks                     AITask[]
+  document_embeddings          DocumentEmbedding[]
+  notifications                Notification[]
+  notification_templates       NotificationTemplate[]
+  system_settings              SystemSetting[]
+  audit_logs                   AuditLog[]
+  document_folders             DocumentFolder[]
+  user_invites                 UserInvite[]
   institutional_doc_categories InstitutionalDocCategory[]
   institutional_documents      InstitutionalDocument[]
   organization_profile         OrganizationProfile?
+  editais                      Edital[]
+  saved_editais                SavedEdital[]
+  professores                  Professor[]
+  turmas                       Turma[]
+  matriculas                   Matricula[]
+  conecta_atividades           Atividade[]
+  entregas_atividades          EntregaAtividade[]
+  presencas                    Presenca[]
+  notas_desenvolvimento        NotaDesenvolvimento[]
 
   @@index([slug])
   @@index([cnpj])
@@ -513,48 +591,48 @@ model Tenant {
 }
 
 model User {
-  id                  String     @id @default(cuid())
-  tenant_id           String
-  email               String
-  password_hash       String
-  name                String
-  phone               String?
-  avatar_url          String?
-  status              UserStatus @default(ACTIVE)
-  email_verified_at   DateTime?
-  last_login_at       DateTime?
-  created_at          DateTime   @default(now())
-  updated_at          DateTime   @updatedAt
-  deleted_at          DateTime?
+  id                String     @id @default(cuid())
+  tenant_id         String
+  email             String
+  password_hash     String
+  name              String
+  phone             String?
+  avatar_url        String?
+  status            UserStatus @default(ACTIVE)
+  email_verified_at DateTime?
+  last_login_at     DateTime?
+  created_at        DateTime   @default(now())
+  updated_at        DateTime   @updatedAt
+  deleted_at        DateTime?
 
   // Relations
-  tenant                 Tenant               @relation(fields: [tenant_id], references: [id])
-  user_roles             UserRole[]           @relation("UserToUserRole")
-  granted_roles          UserRole[]           @relation("GrantedByUser")
-  refresh_tokens         RefreshToken[]
-  managed_projects       Project[]            @relation("ProjectManager")
-  created_projects       Project[]            @relation("ProjectCreator")
-  project_members        ProjectMember[]
-  assigned_tasks         ProjectTask[]
-  risk_owners            ProjectRisk[]
-  ai_conversations       AIConversation[]
-  notifications          Notification[]
-  created_documents      Document[]           @relation("DocumentCreator")
-  document_versions      DocumentVersion[]
-  accountability_reports AccountabilityReport[] @relation("AccountabilityReportCreator")
-  workflow_instances     WorkflowInstance[]   @relation("WorkflowStarter")
-  workflow_approvals     WorkflowApproval[]
-  compliance_checks      ComplianceCheck[]    @relation("ComplianceChecker")
-  system_settings        SystemSetting[]
-  audit_logs             AuditLog[]
-  activity_responsible   Activity[]
-  sent_invites           UserInvite[]         @relation("InviteSender")
-  indicator_measurements IndicatorMeasurement[] @relation("MeasurementVerifier")
-  created_indicators     Indicator[]
-  created_transactions   Transaction[]        @relation("TransactionCreator")
-  approved_transactions  Transaction[]        @relation("TransactionApprover")
+  tenant                  Tenant                  @relation(fields: [tenant_id], references: [id])
+  user_roles              UserRole[]              @relation("UserToUserRole")
+  granted_roles           UserRole[]              @relation("GrantedByUser")
+  refresh_tokens          RefreshToken[]
+  managed_projects        Project[]               @relation("ProjectManager")
+  created_projects        Project[]               @relation("ProjectCreator")
+  project_members         ProjectMember[]
+  assigned_tasks          ProjectTask[]
+  risk_owners             ProjectRisk[]
+  ai_conversations        AIConversation[]
+  notifications           Notification[]
+  created_documents       Document[]              @relation("DocumentCreator")
+  document_versions       DocumentVersion[]
+  accountability_reports  AccountabilityReport[]  @relation("AccountabilityReportCreator")
+  workflow_instances      WorkflowInstance[]      @relation("WorkflowStarter")
+  workflow_approvals      WorkflowApproval[]
+  compliance_checks       ComplianceCheck[]       @relation("ComplianceChecker")
+  system_settings         SystemSetting[]
+  audit_logs              AuditLog[]
+  activity_responsible    Activity[]
+  sent_invites            UserInvite[]            @relation("InviteSender")
+  indicator_measurements  IndicatorMeasurement[]  @relation("MeasurementVerifier")
+  created_indicators      Indicator[]
+  created_transactions    Transaction[]           @relation("TransactionCreator")
+  approved_transactions   Transaction[]           @relation("TransactionApprover")
   approved_payment_orders PaymentOrder[]
-  validated_invoices     Invoice[]
+  validated_invoices      Invoice[]
   institutional_documents InstitutionalDocument[] @relation("InstitutionalDocUploader")
 
   @@unique([tenant_id, email])
@@ -592,8 +670,8 @@ model UserRole {
   expires_at DateTime?
 
   // Relations
-  user       User  @relation("UserToUserRole", fields: [user_id], references: [id])
-  role       Role  @relation(fields: [role_id], references: [id])
+  user            User  @relation("UserToUserRole", fields: [user_id], references: [id])
+  role            Role  @relation(fields: [role_id], references: [id])
   granted_by_user User? @relation("GrantedByUser", fields: [granted_by], references: [id])
 
   @@id([user_id, role_id])
@@ -664,22 +742,22 @@ model AuditLog {
 // ============================================================
 
 model Organization {
-  id           String    @id @default(cuid())
-  tenant_id    String    @unique
-  legal_name   String
-  trade_name   String?
-  cnpj         String?   @unique
-  type         TenantType
-  founded_at   DateTime?
-  mission      String?
-  vision       String?
-  values       String?
-  address      Json?
-  social_links Json?     @default("{}")
-  bank_accounts Json?    @default("[]")
-  certificates Json?     @default("[]")
-  created_at   DateTime  @default(now())
-  updated_at   DateTime  @updatedAt
+  id            String     @id @default(cuid())
+  tenant_id     String     @unique
+  legal_name    String
+  trade_name    String?
+  cnpj          String?    @unique
+  type          TenantType
+  founded_at    DateTime?
+  mission       String?
+  vision        String?
+  values        String?
+  address       Json?
+  social_links  Json?      @default("{}")
+  bank_accounts Json?      @default("[]")
+  certificates  Json?      @default("[]")
+  created_at    DateTime   @default(now())
+  updated_at    DateTime   @updatedAt
 
   // Relations
   tenant    Tenant                 @relation(fields: [tenant_id], references: [id])
@@ -691,15 +769,15 @@ model Organization {
 }
 
 model OrganizationDocument {
-  id          String                     @id @default(cuid())
-  org_id      String
-  type        String
-  name        String
-  file_url    String
-  issued_at   DateTime?
-  expires_at  DateTime?
-  status      OrganizationDocumentStatus @default(VALIDO)
-  created_at  DateTime                   @default(now())
+  id         String                     @id @default(cuid())
+  org_id     String
+  type       String
+  name       String
+  file_url   String
+  issued_at  DateTime?
+  expires_at DateTime?
+  status     OrganizationDocumentStatus @default(VALIDO)
+  created_at DateTime                   @default(now())
 
   // Relations
   organization Organization @relation(fields: [org_id], references: [id])
@@ -715,24 +793,24 @@ model OrganizationDocument {
 // ============================================================
 
 model Project {
-  id               String        @id @default(cuid())
-  tenant_id        String
-  code             String?
-  name             String
-  description      String?
-  type             ProjectType
-  status           ProjectStatus @default(RASCUNHO)
-  start_date       DateTime?
-  end_date         DateTime?
-  total_budget     Decimal?      @db.Decimal(18, 2)
-  approved_budget  Decimal?      @db.Decimal(18, 2)
-  funding_sources  Json?         @default("[]")
-  tags             String[]      @default([])
-  manager_id       String?
-  created_by       String?
-  created_at       DateTime      @default(now())
-  updated_at       DateTime      @updatedAt
-  deleted_at       DateTime?
+  id              String        @id @default(cuid())
+  tenant_id       String
+  code            String?
+  name            String
+  description     String?
+  type            ProjectType
+  status          ProjectStatus @default(RASCUNHO)
+  start_date      DateTime?
+  end_date        DateTime?
+  total_budget    Decimal?      @db.Decimal(18, 2)
+  approved_budget Decimal?      @db.Decimal(18, 2)
+  funding_sources Json?         @default("[]")
+  tags            String[]      @default([])
+  manager_id      String?
+  created_by      String?
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+  deleted_at      DateTime?
 
   // Relations
   tenant                 Tenant                 @relation(fields: [tenant_id], references: [id])
@@ -757,6 +835,9 @@ model Project {
   partnerships           Partnership[]
   document_folders       DocumentFolder[]
   compliance_checks      ComplianceCheck[]
+  beneficiario_vinculos  BeneficiarioProjeto[]
+  professor_vinculos     ProfessorProjeto[]
+  turmas                 Turma[]
 
   @@unique([tenant_id, code])
   @@index([tenant_id])
@@ -859,17 +940,17 @@ model ProjectRisk {
 }
 
 model ProjectIndicator {
-  id            String    @id @default(cuid())
+  id            String                @id @default(cuid())
   project_id    String
   name          String
   description   String?
   unit          String?
-  baseline      Decimal?  @db.Decimal(18, 4)
-  target        Decimal?  @db.Decimal(18, 4)
-  current_value Decimal?  @db.Decimal(18, 4)
+  baseline      Decimal?              @db.Decimal(18, 4)
+  target        Decimal?              @db.Decimal(18, 4)
+  current_value Decimal?              @db.Decimal(18, 4)
   frequency     MeasurementFrequency?
   last_updated  DateTime?
-  created_at    DateTime  @default(now())
+  created_at    DateTime              @default(now())
 
   // Relations
   project Project @relation(fields: [project_id], references: [id])
@@ -883,24 +964,24 @@ model ProjectIndicator {
 // ============================================================
 
 model FundingOpportunity {
-  id            String                   @id @default(cuid())
-  tenant_id     String
-  title         String
-  description   String?
-  type          FundingOpportunityType
-  source_name   String?
-  source_url    String?
-  total_amount  Decimal?                 @db.Decimal(18, 2)
-  min_amount    Decimal?                 @db.Decimal(18, 2)
-  max_amount    Decimal?                 @db.Decimal(18, 2)
-  opens_at      DateTime?
-  closes_at     DateTime?
-  status        FundingOpportunityStatus @default(ABERTO)
-  requirements  Json?                    @default("{}")
-  areas         String[]                 @default([])
-  tags          String[]                 @default([])
-  created_at    DateTime                 @default(now())
-  updated_at    DateTime                 @updatedAt
+  id           String                   @id @default(cuid())
+  tenant_id    String
+  title        String
+  description  String?
+  type         FundingOpportunityType
+  source_name  String?
+  source_url   String?
+  total_amount Decimal?                 @db.Decimal(18, 2)
+  min_amount   Decimal?                 @db.Decimal(18, 2)
+  max_amount   Decimal?                 @db.Decimal(18, 2)
+  opens_at     DateTime?
+  closes_at    DateTime?
+  status       FundingOpportunityStatus @default(ABERTO)
+  requirements Json?                    @default("{}")
+  areas        String[]                 @default([])
+  tags         String[]                 @default([])
+  created_at   DateTime                 @default(now())
+  updated_at   DateTime                 @updatedAt
 
   // Relations
   tenant       Tenant               @relation(fields: [tenant_id], references: [id])
@@ -941,20 +1022,20 @@ model FundingApplication {
 }
 
 model IncentiveLaw {
-  id                String           @id @default(cuid())
-  tenant_id         String
-  name              String
-  type              IncentiveLawType
-  description       String?
-  fiscal_benefit_pct Decimal?        @db.Decimal(5, 2)
-  max_amount        Decimal?         @db.Decimal(18, 2)
-  min_amount        Decimal?         @db.Decimal(18, 2)
-  eligible_areas    String[]         @default([])
-  requirements      Json?            @default("{}")
-  valid_from        DateTime?
-  valid_until       DateTime?
-  status            String?
-  created_at        DateTime         @default(now())
+  id                 String           @id @default(cuid())
+  tenant_id          String
+  name               String
+  type               IncentiveLawType
+  description        String?
+  fiscal_benefit_pct Decimal?         @db.Decimal(5, 2)
+  max_amount         Decimal?         @db.Decimal(18, 2)
+  min_amount         Decimal?         @db.Decimal(18, 2)
+  eligible_areas     String[]         @default([])
+  requirements       Json?            @default("{}")
+  valid_from         DateTime?
+  valid_until        DateTime?
+  status             String?
+  created_at         DateTime         @default(now())
 
   // Relations
   tenant Tenant @relation(fields: [tenant_id], references: [id])
@@ -1101,10 +1182,10 @@ model CostCenter {
   updated_at  DateTime @updatedAt
 
   // Relations
-  tenant       Tenant       @relation(fields: [tenant_id], references: [id])
-  parent       CostCenter?  @relation("CostCenterHierarchy", fields: [parent_id], references: [id])
-  children     CostCenter[] @relation("CostCenterHierarchy")
-  project      Project?     @relation(fields: [project_id], references: [id])
+  tenant       Tenant        @relation(fields: [tenant_id], references: [id])
+  parent       CostCenter?   @relation("CostCenterHierarchy", fields: [parent_id], references: [id])
+  children     CostCenter[]  @relation("CostCenterHierarchy")
+  project      Project?      @relation(fields: [project_id], references: [id])
   transactions Transaction[]
 
   @@unique([tenant_id, code])
@@ -1137,15 +1218,15 @@ model Transaction {
   updated_at       DateTime          @updatedAt
 
   // Relations
-  tenant             Tenant           @relation(fields: [tenant_id], references: [id])
-  project            Project?         @relation(fields: [project_id], references: [id])
-  cost_center        CostCenter?      @relation(fields: [cost_center_id], references: [id])
-  creator            User?            @relation("TransactionCreator", fields: [created_by], references: [id])
-  approver           User?            @relation("TransactionApprover", fields: [approved_by], references: [id])
-  payment_orders     PaymentOrder[]
-  invoices           Invoice[]
+  tenant               Tenant               @relation(fields: [tenant_id], references: [id])
+  project              Project?             @relation(fields: [project_id], references: [id])
+  cost_center          CostCenter?          @relation(fields: [cost_center_id], references: [id])
+  creator              User?                @relation("TransactionCreator", fields: [created_by], references: [id])
+  approver             User?                @relation("TransactionApprover", fields: [approved_by], references: [id])
+  payment_orders       PaymentOrder[]
+  invoices             Invoice[]
   accountability_items AccountabilityItem[]
-  matched_statements AccountStatement[]
+  matched_statements   AccountStatement[]
 
   @@index([tenant_id])
   @@index([project_id])
@@ -1158,18 +1239,18 @@ model Transaction {
 }
 
 model PaymentOrder {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   tenant_id         String
   transaction_id    String?
   supplier_name     String
   supplier_cnpj_cpf String?
-  amount            Decimal  @db.Decimal(18, 2)
+  amount            Decimal   @db.Decimal(18, 2)
   due_date          DateTime
   status            String
   bank_data         Json?
   approved_by       String?
   paid_at           DateTime?
-  created_at        DateTime @default(now())
+  created_at        DateTime  @default(now())
 
   // Relations
   tenant      Tenant       @relation(fields: [tenant_id], references: [id])
@@ -1184,21 +1265,21 @@ model PaymentOrder {
 }
 
 model Invoice {
-  id              String        @id @default(cuid())
-  tenant_id       String
-  transaction_id  String?
-  number          String?
-  supplier_name   String
-  supplier_cnpj   String?
-  issue_date      DateTime
-  amount          Decimal       @db.Decimal(18, 2)
-  tax_amount      Decimal?      @db.Decimal(18, 2)
-  net_amount      Decimal?      @db.Decimal(18, 2)
-  file_url        String?
-  status          InvoiceStatus @default(PENDENTE)
-  validated_by    String?
-  notes           String?
-  created_at      DateTime      @default(now())
+  id             String        @id @default(cuid())
+  tenant_id      String
+  transaction_id String?
+  number         String?
+  supplier_name  String
+  supplier_cnpj  String?
+  issue_date     DateTime
+  amount         Decimal       @db.Decimal(18, 2)
+  tax_amount     Decimal?      @db.Decimal(18, 2)
+  net_amount     Decimal?      @db.Decimal(18, 2)
+  file_url       String?
+  status         InvoiceStatus @default(PENDENTE)
+  validated_by   String?
+  notes          String?
+  created_at     DateTime      @default(now())
 
   // Relations
   tenant      Tenant       @relation(fields: [tenant_id], references: [id])
@@ -1213,19 +1294,19 @@ model Invoice {
 }
 
 model BankReconciliation {
-  id               String    @id @default(cuid())
-  tenant_id        String
-  account_id       String
-  period_start     DateTime
-  period_end       DateTime
-  opening_balance  Decimal   @db.Decimal(18, 2)
-  closing_balance  Decimal   @db.Decimal(18, 2)
-  status           String
-  reconciled_by    String?
-  created_at       DateTime  @default(now())
+  id              String   @id @default(cuid())
+  tenant_id       String
+  account_id      String
+  period_start    DateTime
+  period_end      DateTime
+  opening_balance Decimal  @db.Decimal(18, 2)
+  closing_balance Decimal  @db.Decimal(18, 2)
+  status          String
+  reconciled_by   String?
+  created_at      DateTime @default(now())
 
   // Relations
-  tenant     Tenant           @relation(fields: [tenant_id], references: [id])
+  tenant     Tenant             @relation(fields: [tenant_id], references: [id])
   statements AccountStatement[]
 
   @@index([tenant_id])
@@ -1236,18 +1317,18 @@ model BankReconciliation {
 }
 
 model AccountStatement {
-  id                     String    @id @default(cuid())
+  id                     String   @id @default(cuid())
   reconciliation_id      String
   date                   DateTime
   description            String
-  amount                 Decimal   @db.Decimal(18, 2)
+  amount                 Decimal  @db.Decimal(18, 2)
   type                   String
   matched_transaction_id String?
-  created_at             DateTime  @default(now())
+  created_at             DateTime @default(now())
 
   // Relations
-  reconciliation       BankReconciliation @relation(fields: [reconciliation_id], references: [id])
-  matched_transaction  Transaction?       @relation(fields: [matched_transaction_id], references: [id])
+  reconciliation      BankReconciliation @relation(fields: [reconciliation_id], references: [id])
+  matched_transaction Transaction?       @relation(fields: [matched_transaction_id], references: [id])
 
   @@index([reconciliation_id])
   @@index([matched_transaction_id])
@@ -1339,19 +1420,19 @@ model DocumentSignature {
 }
 
 model DocumentFolder {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   tenant_id   String
   name        String
   parent_id   String?
   project_id  String?
   description String?
-  created_at  DateTime  @default(now())
+  created_at  DateTime @default(now())
 
   // Relations
-  tenant   Tenant          @relation(fields: [tenant_id], references: [id])
-  parent   DocumentFolder? @relation("FolderHierarchy", fields: [parent_id], references: [id])
+  tenant   Tenant           @relation(fields: [tenant_id], references: [id])
+  parent   DocumentFolder?  @relation("FolderHierarchy", fields: [parent_id], references: [id])
   children DocumentFolder[] @relation("FolderHierarchy")
-  project  Project?        @relation(fields: [project_id], references: [id])
+  project  Project?         @relation(fields: [project_id], references: [id])
 
   @@index([tenant_id])
   @@index([parent_id])
@@ -1475,9 +1556,9 @@ model AccountabilityReport {
   updated_at        DateTime                   @updatedAt
 
   // Relations
-  tenant  Tenant                 @relation(fields: [tenant_id], references: [id])
-  project Project?               @relation(fields: [project_id], references: [id])
-  creator User?                  @relation("AccountabilityReportCreator", fields: [created_by], references: [id])
+  tenant  Tenant                @relation(fields: [tenant_id], references: [id])
+  project Project?              @relation(fields: [project_id], references: [id])
+  creator User?                 @relation("AccountabilityReportCreator", fields: [created_by], references: [id])
   items   AccountabilityItem[]
   glosses AccountabilityGloss[]
 
@@ -1490,20 +1571,20 @@ model AccountabilityReport {
 }
 
 model AccountabilityItem {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   report_id      String
   transaction_id String?
   description    String
-  amount         Decimal   @db.Decimal(18, 2)
+  amount         Decimal  @db.Decimal(18, 2)
   category       String?
-  document_ids   String[]  @default([])
+  document_ids   String[] @default([])
   notes          String?
   status         String?
-  created_at     DateTime  @default(now())
+  created_at     DateTime @default(now())
 
   // Relations
-  report      AccountabilityReport @relation(fields: [report_id], references: [id])
-  transaction Transaction?         @relation(fields: [transaction_id], references: [id])
+  report      AccountabilityReport  @relation(fields: [report_id], references: [id])
+  transaction Transaction?          @relation(fields: [transaction_id], references: [id])
   glosses     AccountabilityGloss[]
 
   @@index([report_id])
@@ -1512,14 +1593,14 @@ model AccountabilityItem {
 }
 
 model AccountabilityGloss {
-  id        String      @id @default(cuid())
-  report_id String
-  item_id   String?
-  amount    Decimal     @db.Decimal(18, 2)
-  reason    String
-  response  String?
-  status    GlossStatus @default(PENDENTE)
-  created_at DateTime   @default(now())
+  id         String      @id @default(cuid())
+  report_id  String
+  item_id    String?
+  amount     Decimal     @db.Decimal(18, 2)
+  reason     String
+  response   String?
+  status     GlossStatus @default(PENDENTE)
+  created_at DateTime    @default(now())
 
   // Relations
   report AccountabilityReport @relation(fields: [report_id], references: [id])
@@ -1554,9 +1635,9 @@ model Indicator {
   updated_at         DateTime             @updatedAt
 
   // Relations
-  tenant       Tenant                  @relation(fields: [tenant_id], references: [id])
-  project      Project?                @relation(fields: [project_id], references: [id])
-  creator      User?                   @relation(fields: [created_by], references: [id])
+  tenant       Tenant                 @relation(fields: [tenant_id], references: [id])
+  project      Project?               @relation(fields: [project_id], references: [id])
+  creator      User?                  @relation(fields: [created_by], references: [id])
   measurements IndicatorMeasurement[]
 
   @@unique([tenant_id, code])
@@ -1567,14 +1648,14 @@ model Indicator {
 }
 
 model IndicatorMeasurement {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   indicator_id String
-  value        Decimal   @db.Decimal(18, 4)
+  value        Decimal  @db.Decimal(18, 4)
   date         DateTime
   notes        String?
   evidence_url String?
   verified_by  String?
-  created_at   DateTime  @default(now())
+  created_at   DateTime @default(now())
 
   // Relations
   indicator Indicator @relation(fields: [indicator_id], references: [id])
@@ -1587,30 +1668,59 @@ model IndicatorMeasurement {
 }
 
 model Beneficiary {
-  id                  String            @id @default(cuid())
-  tenant_id           String
-  project_id          String?
-  name                String
-  cpf                 String?
-  birth_date          DateTime?
-  gender              Gender?
-  race                Race?
-  social_vulnerability Json?
-  address             Json?
-  contact             Json?
-  status              BeneficiaryStatus @default(ATIVO)
-  enrollment_date     DateTime?
-  exit_date           DateTime?
-  exit_reason         String?
-  created_at          DateTime          @default(now())
-  updated_at          DateTime          @updatedAt
+  id                          String            @id @default(cuid())
+  tenant_id                   String
+  project_id                  String?
+  name                        String
+  cpf                         String?
+  birth_date                  DateTime?
+  gender                      Gender?
+  race                        Race?
+  social_vulnerability        Json?
+  address                     Json?
+  contact                     Json?
+  status                      BeneficiaryStatus @default(ATIVO)
+  enrollment_date             DateTime?
+  exit_date                   DateTime?
+  exit_reason                 String?
+  telefone                    String?
+  email                       String?
+  foto_url                    String?
+  rg_certidao                 String?
+  cep                         String?
+  logradouro                  String?
+  numero                      String?
+  complemento                 String?
+  bairro                      String?
+  cidade                      String?
+  uf_endereco                 String?
+  turma                       String?
+  turno                       String?
+  escola                      String?
+  serie_ano                   String?
+  renda_familiar              Decimal?          @db.Decimal(18, 2)
+  pessoas_residencia          Int?
+  necessidades_especiais      String?
+  alergias                    String?
+  medicamentos                String?
+  observacoes_gerais          String?
+  termo_consentimento         Boolean           @default(false)
+  data_consentimento          DateTime?
+  autorizacao_uso_imagem      Boolean           @default(false)
+  documento_consentimento_url String?
+  created_by                  String?
+  created_at                  DateTime          @default(now())
+  updated_at                  DateTime          @updatedAt
 
   // Relations
-  tenant     Tenant               @relation(fields: [tenant_id], references: [id])
-  project    Project?             @relation(fields: [project_id], references: [id])
-  activities BeneficiaryActivity[]
-  enrollments ActivityEnrollment[]
-  attendances ActivityAttendance[]
+  tenant            Tenant                @relation(fields: [tenant_id], references: [id])
+  project           Project?              @relation(fields: [project_id], references: [id])
+  activities        BeneficiaryActivity[]
+  enrollments       ActivityEnrollment[]
+  attendances       ActivityAttendance[]
+  responsaveis      Responsavel[]
+  vinculos_projetos BeneficiarioProjeto[]
+  matriculas        Matricula[]
 
   @@unique([tenant_id, cpf])
   @@index([tenant_id])
@@ -1659,12 +1769,12 @@ model Activity {
   updated_at     DateTime       @updatedAt
 
   // Relations
-  tenant               Tenant               @relation(fields: [tenant_id], references: [id])
-  project              Project?             @relation(fields: [project_id], references: [id])
-  responsible          User?                @relation(fields: [responsible_id], references: [id])
+  tenant                 Tenant                @relation(fields: [tenant_id], references: [id])
+  project                Project?              @relation(fields: [project_id], references: [id])
+  responsible            User?                 @relation(fields: [responsible_id], references: [id])
   beneficiary_activities BeneficiaryActivity[]
-  enrollments          ActivityEnrollment[]
-  attendances          ActivityAttendance[]
+  enrollments            ActivityEnrollment[]
+  attendances            ActivityAttendance[]
 
   @@index([tenant_id])
   @@index([project_id])
@@ -1695,12 +1805,12 @@ model ActivityEnrollment {
 }
 
 model ActivityAttendance {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   activity_id    String
   beneficiary_id String
   attended_at    DateTime
   notes          String?
-  created_at     DateTime  @default(now())
+  created_at     DateTime @default(now())
 
   // Relations
   activity    Activity    @relation(fields: [activity_id], references: [id])
@@ -1733,7 +1843,7 @@ model Partner {
   updated_at DateTime      @updatedAt
 
   // Relations
-  tenant       Tenant         @relation(fields: [tenant_id], references: [id])
+  tenant       Tenant           @relation(fields: [tenant_id], references: [id])
   contacts     PartnerContact[]
   partnerships Partnership[]
   sponsors     Sponsor[]
@@ -1792,21 +1902,21 @@ model Partnership {
 }
 
 model Sponsor {
-  id                String       @id @default(cuid())
+  id                String        @id @default(cuid())
   tenant_id         String
   partner_id        String?
   name              String
   logo_url          String?
   website           String?
   tier              SponsorTier
-  investment_amount Decimal?     @db.Decimal(18, 2)
-  benefits          Json?        @default("{}")
+  investment_amount Decimal?      @db.Decimal(18, 2)
+  benefits          Json?         @default("{}")
   start_date        DateTime?
   end_date          DateTime?
   status            SponsorStatus @default(PROSPECTO)
-  project_ids       String[]     @default([])
-  created_at        DateTime     @default(now())
-  updated_at        DateTime     @updatedAt
+  project_ids       String[]      @default([])
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
 
   // Relations
   tenant  Tenant   @relation(fields: [tenant_id], references: [id])
@@ -1893,18 +2003,18 @@ model WorkflowApproval {
 // ============================================================
 
 model LegalRequirement {
-  id              String   @id @default(cuid())
-  tenant_id       String
-  name            String
-  description     String?
-  law_reference   String?
-  type            String?
-  applicable_to   String[] @default([])
-  due_date_rule   String?
-  created_at      DateTime @default(now())
+  id            String   @id @default(cuid())
+  tenant_id     String
+  name          String
+  description   String?
+  law_reference String?
+  type          String?
+  applicable_to String[] @default([])
+  due_date_rule String?
+  created_at    DateTime @default(now())
 
   // Relations
-  tenant           Tenant            @relation(fields: [tenant_id], references: [id])
+  tenant            Tenant            @relation(fields: [tenant_id], references: [id])
   compliance_checks ComplianceCheck[]
 
   @@index([tenant_id])
@@ -1913,20 +2023,20 @@ model LegalRequirement {
 }
 
 model ComplianceCheck {
-  id              String           @id @default(cuid())
-  tenant_id       String
-  requirement_id  String?
-  project_id      String?
-  status          ComplianceStatus @default(PENDENTE)
-  evidence_url    String?
-  notes           String?
-  checked_by      String?
-  checked_at      DateTime?
-  next_check_at   DateTime?
-  created_at      DateTime         @default(now())
+  id             String           @id @default(cuid())
+  tenant_id      String
+  requirement_id String?
+  project_id     String?
+  status         ComplianceStatus @default(PENDENTE)
+  evidence_url   String?
+  notes          String?
+  checked_by     String?
+  checked_at     DateTime?
+  next_check_at  DateTime?
+  created_at     DateTime         @default(now())
 
   // Relations
-  tenant      Tenant           @relation(fields: [tenant_id], references: [id])
+  tenant      Tenant            @relation(fields: [tenant_id], references: [id])
   requirement LegalRequirement? @relation(fields: [requirement_id], references: [id])
   project     Project?          @relation(fields: [project_id], references: [id])
   checker     User?             @relation("ComplianceChecker", fields: [checked_by], references: [id])
@@ -2011,18 +2121,18 @@ model AIConversation {
 }
 
 model AITask {
-  id          String      @id @default(cuid())
-  tenant_id   String
-  agent_id    String?
-  type        String
-  status      AITaskStatus @default(PENDING)
-  input       Json?
-  output      Json?
-  tokens_used Int          @default(0)
-  error       String?
-  started_at  DateTime?
+  id           String       @id @default(cuid())
+  tenant_id    String
+  agent_id     String?
+  type         String
+  status       AITaskStatus @default(PENDING)
+  input        Json?
+  output       Json?
+  tokens_used  Int          @default(0)
+  error        String?
+  started_at   DateTime?
   completed_at DateTime?
-  created_at  DateTime     @default(now())
+  created_at   DateTime     @default(now())
 
   // Relations
   tenant Tenant   @relation(fields: [tenant_id], references: [id])
@@ -2037,14 +2147,14 @@ model AITask {
 }
 
 model DocumentEmbedding {
-  id          String   @id @default(cuid())
+  id          String                       @id @default(cuid())
   tenant_id   String
   document_id String?
   chunk_index Int
   content     String
-  embedding   Unsupported("vector(1536)")?
-  metadata    Json?    @default("{}")
-  created_at  DateTime @default(now())
+  embedding   Float[]                    @default([])
+  metadata    Json?                        @default("{}")
+  created_at  DateTime                     @default(now())
 
   // Relations
   tenant   Tenant    @relation(fields: [tenant_id], references: [id])
@@ -2120,8 +2230,8 @@ model SystemSetting {
   updated_at  DateTime @updatedAt
 
   // Relations
-  tenant   Tenant @relation(fields: [tenant_id], references: [id])
-  updater  User?  @relation(fields: [updated_by], references: [id])
+  tenant  Tenant @relation(fields: [tenant_id], references: [id])
+  updater User?  @relation(fields: [updated_by], references: [id])
 
   @@unique([tenant_id, key])
   @@index([tenant_id])
@@ -2146,9 +2256,9 @@ model UserInvite {
   created_at  DateTime     @default(now())
 
   // Relations
-  tenant     Tenant  @relation(fields: [tenant_id], references: [id])
-  role       Role?   @relation(fields: [role_id], references: [id])
-  inviter    User?   @relation("InviteSender", fields: [invited_by], references: [id])
+  tenant  Tenant @relation(fields: [tenant_id], references: [id])
+  role    Role?  @relation(fields: [role_id], references: [id])
+  inviter User?  @relation("InviteSender", fields: [invited_by], references: [id])
 
   @@unique([tenant_id, email])
   @@index([tenant_id])
@@ -2156,4 +2266,280 @@ model UserInvite {
   @@index([status])
   @@index([expires_at])
   @@map("user_invites")
+}
+
+// ============================================================
+// EDITAIS, BENEFICIÁRIOS E EQUIPE EDUCACIONAL
+// ============================================================
+
+model Edital {
+  id                     String          @id @default(cuid())
+  tenant_id              String?
+  fonte                  EditalFonte
+  external_id            String?
+  titulo                 String
+  orgao                  String?
+  descricao              String?
+  valor_total            Decimal?        @db.Decimal(18, 2)
+  data_abertura          DateTime?
+  data_encerramento      DateTime?
+  abrangencia            OrgAbrangencia?
+  uf                     String?
+  area_tematica          String?
+  link_oficial           String?
+  requisitos_documentais String[]        @default([])
+  created_by             String?
+  created_at             DateTime        @default(now())
+  updated_at             DateTime        @updatedAt
+  tenant                 Tenant?         @relation(fields: [tenant_id], references: [id])
+  salvos                 SavedEdital[]
+
+  @@index([tenant_id])
+  @@index([fonte, external_id])
+  @@map("editais")
+}
+
+model SavedEdital {
+  id                String            @id @default(cuid())
+  tenant_id         String
+  edital_ref        String
+  fonte             EditalFonte
+  external_id       String?
+  edital_id         String?
+  titulo            String
+  orgao             String?
+  data_encerramento DateTime?
+  status            SavedEditalStatus @default(SALVO)
+  notas             String?
+  created_at        DateTime          @default(now())
+  updated_at        DateTime          @updatedAt
+  tenant            Tenant            @relation(fields: [tenant_id], references: [id])
+  edital            Edital?           @relation(fields: [edital_id], references: [id])
+
+  @@unique([tenant_id, edital_ref])
+  @@index([tenant_id])
+  @@index([status])
+  @@map("saved_editais")
+}
+
+model Responsavel {
+  id             String         @id @default(cuid())
+  beneficiary_id String
+  nome_completo  String
+  parentesco     ParentescoType
+  cpf            String?
+  telefone       String?
+  email          String?
+  endereco       Json?
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+  beneficiary    Beneficiary    @relation(fields: [beneficiary_id], references: [id], onDelete: Cascade)
+
+  @@index([beneficiary_id])
+  @@map("responsaveis")
+}
+
+model BeneficiarioProjeto {
+  id                String        @id @default(cuid())
+  beneficiary_id    String
+  project_id        String
+  data_ingresso     DateTime
+  data_desligamento DateTime?
+  status            VinculoStatus @default(ATIVO)
+  turma             String?
+  turno             String?
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+  beneficiary       Beneficiary   @relation(fields: [beneficiary_id], references: [id], onDelete: Cascade)
+  project           Project       @relation(fields: [project_id], references: [id])
+
+  @@unique([beneficiary_id, project_id])
+  @@index([project_id])
+  @@map("beneficiarios_projetos")
+}
+
+model Professor {
+  id                       String               @id @default(cuid())
+  tenant_id                String
+  nome_completo            String
+  cpf                      String
+  rg                       String?
+  data_nascimento          DateTime?
+  telefone                 String?
+  email                    String?
+  foto_url                 String?
+  cep                      String?
+  logradouro               String?
+  numero                   String?
+  complemento              String?
+  bairro                   String?
+  cidade                   String?
+  uf                       String?
+  formacao_academica       String?
+  especializacao           String?
+  disciplinas              String[]             @default([])
+  tipo_vinculo             TipoVinculo
+  forma_pagamento          FormaPagamento?
+  dados_bancarios          Json?
+  dia_pagamento            Int?
+  comprovante_formacao_url String?
+  certificados_urls        String[]             @default([])
+  contrato_url             String?
+  status                   ProfessorStatus      @default(ATIVO)
+  data_admissao            DateTime?
+  data_desligamento        DateTime?
+  observacoes              String?
+  created_by               String?
+  created_at               DateTime             @default(now())
+  updated_at               DateTime             @updatedAt
+  tenant                   Tenant               @relation(fields: [tenant_id], references: [id])
+  projetos                 ProfessorProjeto[]
+  historico                HistoricoProfessor[]
+
+  @@unique([tenant_id, cpf])
+  @@index([tenant_id])
+  @@index([status])
+  @@map("professores")
+}
+
+model ProfessorProjeto {
+  id                    String          @id @default(cuid())
+  professor_id          String
+  project_id            String
+  data_inicio           DateTime
+  data_fim              DateTime?
+  status                ProfessorStatus @default(ATIVO)
+  carga_horaria_semanal Int?
+  dias_horarios         Json?
+  created_at            DateTime        @default(now())
+  professor             Professor       @relation(fields: [professor_id], references: [id], onDelete: Cascade)
+  project               Project         @relation(fields: [project_id], references: [id])
+
+  @@unique([professor_id, project_id])
+  @@index([project_id])
+  @@map("professores_projetos")
+}
+
+model HistoricoProfessor {
+  id              String    @id @default(cuid())
+  professor_id    String
+  valor_hora_aula Decimal?  @db.Decimal(18, 2)
+  valor_mensal    Decimal?  @db.Decimal(18, 2)
+  data_vigencia   DateTime
+  motivo          String?
+  created_by      String?
+  created_at      DateTime  @default(now())
+  professor       Professor @relation(fields: [professor_id], references: [id], onDelete: Cascade)
+
+  @@index([professor_id, data_vigencia])
+  @@map("historico_professores")
+}
+
+model Turma {
+  id           String      @id @default(cuid())
+  tenant_id    String
+  project_id   String?
+  professor_id String?
+  nome         String
+  horario      Json?
+  deleted_at   DateTime?
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  tenant       Tenant      @relation(fields: [tenant_id], references: [id])
+  project      Project?    @relation(fields: [project_id], references: [id])
+  matriculas   Matricula[]
+  atividades   Atividade[]
+  presencas    Presenca[]
+
+  @@index([tenant_id])
+  @@index([professor_id])
+  @@map("turmas")
+}
+
+model Matricula {
+  id         String                 @id @default(cuid())
+  tenant_id  String
+  turma_id   String
+  aluno_id   String
+  status     ConectaMatriculaStatus @default(ATIVA)
+  created_at DateTime               @default(now())
+  tenant     Tenant                 @relation(fields: [tenant_id], references: [id])
+  turma      Turma                  @relation(fields: [turma_id], references: [id])
+  aluno      Beneficiary            @relation(fields: [aluno_id], references: [id])
+  entregas   EntregaAtividade[]
+  presencas  Presenca[]
+  notas      NotaDesenvolvimento[]
+
+  @@unique([turma_id, aluno_id])
+  @@index([tenant_id])
+  @@map("matriculas")
+}
+
+model Atividade {
+  id         String                 @id @default(cuid())
+  tenant_id  String
+  turma_id   String
+  titulo     String
+  descricao  String?
+  prazo      DateTime?
+  status     ConectaAtividadeStatus @default(RASCUNHO)
+  created_at DateTime               @default(now())
+  updated_at DateTime               @updatedAt
+  tenant     Tenant                 @relation(fields: [tenant_id], references: [id])
+  turma      Turma                  @relation(fields: [turma_id], references: [id])
+  entregas   EntregaAtividade[]
+
+  @@index([tenant_id, turma_id])
+  @@map("conecta_atividades")
+}
+
+model EntregaAtividade {
+  id           String               @id @default(cuid())
+  tenant_id    String
+  atividade_id String
+  matricula_id String
+  status       ConectaEntregaStatus @default(PENDENTE)
+  conteudo     String?
+  nota         Decimal?             @db.Decimal(5, 2)
+  entregue_at  DateTime?
+  created_at   DateTime             @default(now())
+  tenant       Tenant               @relation(fields: [tenant_id], references: [id])
+  atividade    Atividade            @relation(fields: [atividade_id], references: [id])
+  matricula    Matricula            @relation(fields: [matricula_id], references: [id])
+
+  @@unique([atividade_id, matricula_id])
+  @@index([tenant_id])
+  @@map("entregas_atividades")
+}
+
+model Presenca {
+  id           String    @id @default(cuid())
+  tenant_id    String
+  turma_id     String
+  matricula_id String
+  data         DateTime
+  presente     Boolean   @default(false)
+  created_at   DateTime  @default(now())
+  tenant       Tenant    @relation(fields: [tenant_id], references: [id])
+  turma        Turma     @relation(fields: [turma_id], references: [id])
+  matricula    Matricula @relation(fields: [matricula_id], references: [id])
+
+  @@unique([matricula_id, data])
+  @@index([tenant_id, turma_id])
+  @@map("presencas")
+}
+
+model NotaDesenvolvimento {
+  id           String    @id @default(cuid())
+  tenant_id    String
+  matricula_id String
+  periodo      String
+  nota         Decimal?  @db.Decimal(5, 2)
+  observacao   String?
+  created_at   DateTime  @default(now())
+  tenant       Tenant    @relation(fields: [tenant_id], references: [id])
+  matricula    Matricula @relation(fields: [matricula_id], references: [id])
+
+  @@index([tenant_id, matricula_id])
+  @@map("notas_desenvolvimento")
 }

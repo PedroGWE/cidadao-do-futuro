@@ -1,0 +1,11 @@
+{
+  "name": "Semevo",
+  "short_name": "Semevo",
+  "icons": [
+    { "src": "/brand/Semevo_AppIcon_Claro.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/brand/Semevo_AppIcon_Claro.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "theme_color": "#185B4C",
+  "background_color": "#F6F3EA",
+  "display": "standalone"
+}

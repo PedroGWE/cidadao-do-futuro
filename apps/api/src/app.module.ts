@@ -10,12 +10,19 @@ import { ProjectsModule } from './modules/projects/projects.module'
 import { FinancialModule } from './modules/financial/financial.module'
 import { DocumentsModule } from './modules/documents/documents.module'
 import { OrganizationProfileModule } from './modules/organization-profile/organization-profile.module'
+import { EditaisModule } from './modules/editais/editais.module'
+import { BeneficiariosModule } from './modules/beneficiarios/beneficiarios.module'
+import { ProfessoresModule } from './modules/professores/professores.module'
+import { ConectaModule } from './modules/conecta/conecta.module'
+import { ReportsModule } from './modules/reports/reports.module'
+import { PartnershipsModule } from './modules/partnerships/partnerships.module'
+import { AccountabilityModule } from './modules/accountability/accountability.module'
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard'
 import { RolesGuard } from './common/guards/roles.guard'
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, load: [envConfig] }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env.local', '.env'], load: [envConfig] }),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -24,6 +31,13 @@ import { RolesGuard } from './common/guards/roles.guard'
     FinancialModule,
     DocumentsModule,
     OrganizationProfileModule,
+    EditaisModule,
+    BeneficiariosModule,
+    ProfessoresModule,
+    ConectaModule,
+    ReportsModule,
+    PartnershipsModule,
+    AccountabilityModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

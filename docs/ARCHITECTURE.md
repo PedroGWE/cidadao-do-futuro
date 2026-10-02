@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-O Cidadão do Futuro é um monorepo multi-tenant construído sobre uma arquitetura de três camadas: API REST (NestJS), aplicação web (Next.js) e banco de dados relacional (PostgreSQL). A comunicação entre os serviços é feita via HTTP/JSON, com autenticação baseada em JWT.
+O Semevo é um monorepo multi-tenant construído sobre uma arquitetura de três camadas: API REST (NestJS), aplicação web (Next.js) e banco de dados relacional (PostgreSQL). A comunicação entre os serviços é feita via HTTP/JSON, com autenticação baseada em JWT.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐

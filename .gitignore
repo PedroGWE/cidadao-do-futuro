@@ -22,7 +22,8 @@ build/
 !apps/web/.env.production.example
 
 # Prisma
-prisma/migrations/
+# migrations versionadas devem estar no repo
+# prisma/migrations/
 !prisma/schema.prisma
 
 # Editor
@@ -48,3 +49,6 @@ coverage/
 
 # Type checking cache
 *.tsbuildinfo
+
+# Artefatos locais e bancos portáteis de desenvolvimento
+tmp/

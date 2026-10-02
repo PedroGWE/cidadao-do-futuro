@@ -1,1 +1,1 @@
-// UI components will be added here
+export * from './MobileTabBar'

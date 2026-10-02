@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
 import * as crypto from 'crypto'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
 import type { Env } from '../../config/env'
 import type { JwtPayload } from './types/jwt-payload'
@@ -89,28 +90,33 @@ export class AuthService {
 
   async refresh(tokenRaw: string) {
     const tokenHash = this.hashToken(tokenRaw)
-    const stored = await this.prisma.refreshToken.findUnique({ where: { token_hash: tokenHash } })
+    return this.prisma.$transaction(async (tx) => {
+      const stored = await tx.refreshToken.findUnique({ where: { token_hash: tokenHash } })
+      const now = new Date()
+      if (!stored) throw new UnauthorizedException('Refresh token inválido ou expirado')
 
-    if (!stored || stored.revoked_at || stored.expires_at < new Date()) {
-      throw new UnauthorizedException('Refresh token inválido ou expirado')
-    }
+      const consumed = await tx.refreshToken.updateMany({
+        where: { id: stored.id, revoked_at: null, expires_at: { gt: now } },
+        data: { revoked_at: now },
+      })
+      if (consumed.count !== 1) {
+        throw new UnauthorizedException('Refresh token inválido, expirado ou já utilizado')
+      }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: stored.user_id },
-      include: { user_roles: { include: { role: { select: { permissions: true } } } } },
-    })
-    if (!user || user.status !== 'ACTIVE') throw new UnauthorizedException()
+      const user = await tx.user.findUnique({
+        where: { id: stored.user_id },
+        include: { user_roles: { include: { role: { select: { permissions: true } } } } },
+      })
+      if (!user || user.status !== 'ACTIVE' || user.deleted_at) throw new UnauthorizedException()
 
-    const tenant = await this.prisma.tenant.findUnique({ where: { id: user.tenant_id } })
-    if (!tenant || tenant.status === 'INACTIVE') throw new UnauthorizedException()
+      const tenant = await tx.tenant.findUnique({ where: { id: user.tenant_id } })
+      if (!tenant || !['ACTIVE', 'TRIAL'].includes(tenant.status) || tenant.deleted_at) {
+        throw new UnauthorizedException()
+      }
 
-    await this.prisma.refreshToken.update({
-      where: { id: stored.id },
-      data: { revoked_at: new Date() },
-    })
-
-    const permissions = this.extractPermissions(user.user_roles)
-    return this.generateTokens(user.id, user.tenant_id, user.email, permissions)
+      const permissions = this.extractPermissions(user.user_roles)
+      return this.generateTokens(user.id, user.tenant_id, user.email, permissions, tx)
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
   }
 
   async revokeToken(tokenRaw: string) {
@@ -126,6 +132,7 @@ export class AuthService {
     tenantId: string,
     email: string,
     permissions: string[],
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
     const payload: JwtPayload = { sub: userId, tenantId, email, permissions }
 
@@ -134,20 +141,23 @@ export class AuthService {
         secret: this.config.get('JWT_SECRET'),
         expiresIn: this.config.get('JWT_EXPIRES_IN'),
       }),
-      this.generateRefreshToken(userId),
+      this.generateRefreshToken(userId, db),
     ])
 
     return { accessToken, refreshToken }
   }
 
-  private async generateRefreshToken(userId: string): Promise<string> {
+  private async generateRefreshToken(
+    userId: string,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<string> {
     const raw = crypto.randomBytes(64).toString('hex')
     const hash = this.hashToken(raw)
     const expiresIn = this.config.get('JWT_REFRESH_EXPIRES_IN')!
     const days = parseInt(expiresIn) || 7
     const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
 
-    await this.prisma.refreshToken.create({
+    await db.refreshToken.create({
       data: { user_id: userId, token_hash: hash, expires_at: expiresAt },
     })
 

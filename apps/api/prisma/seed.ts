@@ -31,41 +31,49 @@ async function seedDocumentDefaults() {
 }
 
 async function main() {
-  const existing = await prisma.tenant.findUnique({ where: { slug: 'demo' } })
-  if (existing) {
-    console.log('Tenant demo já existe. Pulando criação base.')
-    await seedDocumentDefaults()
-    return
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('O seed de demonstração não pode ser executado em produção. Use db:seed:admin.')
   }
 
-  const tenant = await prisma.tenant.create({
-    data: {
+  const tenant = await prisma.tenant.upsert({
+    where: { slug: 'demo' },
+    create: {
       name: 'Organização Demo',
       slug: 'demo',
       type: 'OSC',
       status: 'ACTIVE',
       plan: 'PROFESSIONAL',
     },
+    update: { name: 'Organização Demo', status: 'ACTIVE' },
   })
 
-  const adminRole = await prisma.role.create({
-    data: {
+  const adminRole = await prisma.role.upsert({
+    where: { tenant_id_name: { tenant_id: tenant.id, name: 'ADMIN' } },
+    create: {
       tenant_id: tenant.id,
       name: 'ADMIN',
       is_system: true,
       permissions: ['*'],
     },
+    update: { is_system: true, permissions: ['*'] },
   })
 
-  await prisma.user.create({
-    data: {
+  const user = await prisma.user.upsert({
+    where: { tenant_id_email: { tenant_id: tenant.id, email: 'admin@demo.com' } },
+    create: {
       tenant_id: tenant.id,
       name: 'Admin Demo',
       email: 'admin@demo.com',
       password_hash: await bcrypt.hash('Admin@123', 12),
       status: 'ACTIVE',
-      user_roles: { create: { role_id: adminRole.id } },
     },
+    update: { name: 'Admin Demo', status: 'ACTIVE' },
+  })
+
+  await prisma.userRole.upsert({
+    where: { user_id_role_id: { user_id: user.id, role_id: adminRole.id } },
+    create: { user_id: user.id, role_id: adminRole.id },
+    update: {},
   })
 
   console.log('✅ Seed criado:')

@@ -1,35 +1,33 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: cidadao_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-cidadao_futuro}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks: [backend]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 20
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     container_name: cidadao_redis
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis}
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
+    networks: [backend]
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis}", "ping"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 20
     restart: unless-stopped
 
   pgadmin:
@@ -48,6 +46,50 @@ services:
       - tools
     restart: unless-stopped
 
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-semevo}:${POSTGRES_PASSWORD:?configure POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-semevo}?schema=public
+      REDIS_URL: redis://:${REDIS_PASSWORD:?configure REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET:?configure JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?configure JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      STORAGE_DIR: /data/uploads
+    volumes:
+      - uploads_data:/data/uploads
+    networks: [backend, frontend]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api/v1}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    networks: [frontend]
+    depends_on:
+      - api
+    restart: unless-stopped
+
+networks:
+  backend:
+    internal: true
+  frontend:
+
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:

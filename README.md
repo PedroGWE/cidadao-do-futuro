@@ -1,10 +1,10 @@
-# Cidadão do Futuro
+# Semevo
 
 Plataforma SaaS brasileira de gestão de projetos sociais para OSCs, Institutos, Fundações e Associações.
 
 ## Visão Geral
 
-O **Cidadão do Futuro** é uma solução completa para organizações do terceiro setor gerenciarem projetos, recursos financeiros, captação de recursos, prestação de contas e impacto social — tudo em um único lugar, com conformidade à LGPD e às exigências legais brasileiras.
+O **Semevo** é uma solução completa para organizações do terceiro setor gerenciarem projetos, recursos financeiros, captação de recursos, prestação de contas e impacto social - tudo em um único lugar.
 
 ## Stack Tecnológica
 
@@ -12,7 +12,7 @@ O **Cidadão do Futuro** é uma solução completa para organizações do tercei
 |---|---|
 | Backend | NestJS 10 + Fastify |
 | Frontend | Next.js 14 + React 18 |
-| Banco de Dados | PostgreSQL 16 + Prisma ORM 5 |
+| Banco de Dados | PostgreSQL 16 padrão + Prisma ORM 5 |
 | Cache | Redis 7 |
 | Autenticação | JWT (access + refresh tokens) |
 | Validação | Zod + class-validator |
@@ -61,11 +61,12 @@ pnpm install
 cp apps/api/.env.example apps/api/.env
 cp infra/docker/.env.example infra/docker/.env
 
-# 4. Subir banco de dados
-docker compose -f infra/docker/docker-compose.yml up -d
+# 4. Subir toda a aplicação
+docker compose --env-file infra/docker/.env -f infra/docker/docker-compose.yml up -d --build
 
-# 5. Rodar migrations
-pnpm db:migrate
+# 5. Em instalação nativa, aplicar migrations e seed de desenvolvimento
+pnpm --filter @cidadao/api exec prisma migrate deploy
+pnpm --filter @cidadao/api db:seed
 
 # 6. Iniciar em desenvolvimento
 pnpm dev
@@ -89,7 +90,12 @@ pnpm db:studio     # Abre o Prisma Studio
 - **Tenants** — Gestão de organizações, convites, papéis e permissões
 - **Projetos** — Ciclo completo: fases, tarefas, membros, riscos, indicadores
 - **Financeiro** — Transações, orçamentos, ordens de pagamento, notas fiscais
-- **Dashboard** — KPIs consolidados por tenant
+- **Beneficiários e professores** — Cadastros, vínculos e jornadas
+- **Documentos** — Upload, download, validade e substituição segura
+- **Editais e parcerias** — Oportunidades, parceiros e propostas
+- **Prestação de contas** — Consolidação rastreável e exportação CSV
+- **Relatórios** — Indicadores reais e exportação
+- **Dashboard** — KPIs consolidados por organização
 
 ## Documentação
 
@@ -97,6 +103,9 @@ pnpm db:studio     # Abre o Prisma Studio
 - [API Reference](docs/API.md)
 - [Roadmap de Melhorias](docs/ROADMAP.md)
 - [Deploy](docs/DEPLOY.md)
+- [Operação, backup e restauração](docs/OPERATIONS.md)
+- [Matriz funcional](docs/FUNCTIONAL_MATRIX.md)
+- [Registro de validação](docs/VALIDATION.md)
 
 ## Licença
 

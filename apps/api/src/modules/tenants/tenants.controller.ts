@@ -7,6 +7,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import { RequirePermissions } from '../../common/decorators/permissions.decorator'
 import { Public } from '../../common/decorators/public.decorator'
 import type { JwtPayload } from '../auth/types/jwt-payload'
+import { CreateRoleDto, UpdateRoleDto } from '../users/dto/user.dto'
 
 @Controller('tenants')
 export class TenantsController {
@@ -31,6 +32,24 @@ export class TenantsController {
   @Get('me/roles')
   listRoles(@CurrentUser('tenantId') tenantId: string) {
     return this.tenants.listRoles(tenantId)
+  }
+
+  @Post('me/roles')
+  @RequirePermissions('roles:write')
+  createRole(@CurrentUser() user: JwtPayload, @Body() dto: CreateRoleDto) {
+    return this.tenants.createRole(user, dto)
+  }
+
+  @Patch('me/roles/:id')
+  @RequirePermissions('roles:write')
+  updateRole(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: UpdateRoleDto) {
+    return this.tenants.updateRole(user, id, dto)
+  }
+
+  @Delete('me/roles/:id')
+  @RequirePermissions('roles:write')
+  deleteRole(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.tenants.deleteRole(user, id)
   }
 
   @Get('me/invites')

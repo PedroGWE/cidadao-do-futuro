@@ -83,6 +83,7 @@ export class ProjectsService {
   }
 
   async create(tenantId: string, userId: string, dto: CreateProjectDto) {
+    if (dto.manager_id) await this.assertUserBelongsToTenant(dto.manager_id, tenantId)
     return this.prisma.project.create({
       data: {
         tenant_id: tenantId,
@@ -106,6 +107,7 @@ export class ProjectsService {
 
   async update(tenantId: string, id: string, dto: UpdateProjectDto) {
     await this.assertBelongsToTenant(id, tenantId)
+    if (dto.manager_id) await this.assertUserBelongsToTenant(dto.manager_id, tenantId)
     return this.prisma.project.update({
       where: { id },
       data: {
@@ -164,6 +166,7 @@ export class ProjectsService {
     dto: Partial<CreatePhaseDto> & { status?: string },
   ) {
     await this.assertBelongsToTenant(projectId, tenantId)
+    await this.assertPhaseBelongsToProject(phaseId, projectId)
     return this.prisma.projectPhase.update({
       where: { id: phaseId },
       data: {
@@ -178,6 +181,7 @@ export class ProjectsService {
 
   async removePhase(tenantId: string, projectId: string, phaseId: string) {
     await this.assertBelongsToTenant(projectId, tenantId)
+    await this.assertPhaseBelongsToProject(phaseId, projectId)
     await this.prisma.projectPhase.delete({ where: { id: phaseId } })
   }
 
@@ -201,6 +205,8 @@ export class ProjectsService {
 
   async createTask(tenantId: string, projectId: string, dto: CreateTaskDto) {
     await this.assertBelongsToTenant(projectId, tenantId)
+    if (dto.phase_id) await this.assertPhaseBelongsToProject(dto.phase_id, projectId)
+    if (dto.assigned_to) await this.assertUserBelongsToTenant(dto.assigned_to, tenantId)
     return this.prisma.projectTask.create({
       data: {
         project_id: projectId,
@@ -217,6 +223,9 @@ export class ProjectsService {
 
   async updateTask(tenantId: string, projectId: string, taskId: string, dto: UpdateTaskDto) {
     await this.assertBelongsToTenant(projectId, tenantId)
+    await this.assertTaskBelongsToProject(taskId, projectId)
+    if (dto.phase_id) await this.assertPhaseBelongsToProject(dto.phase_id, projectId)
+    if (dto.assigned_to) await this.assertUserBelongsToTenant(dto.assigned_to, tenantId)
     return this.prisma.projectTask.update({
       where: { id: taskId },
       data: {
@@ -282,5 +291,29 @@ export class ProjectsService {
       select: { id: true },
     })
     if (!project) throw new NotFoundException('Projeto não encontrado')
+  }
+
+  private async assertPhaseBelongsToProject(phaseId: string, projectId: string) {
+    const phase = await this.prisma.projectPhase.findFirst({
+      where: { id: phaseId, project_id: projectId },
+      select: { id: true },
+    })
+    if (!phase) throw new NotFoundException('Fase não encontrada neste projeto')
+  }
+
+  private async assertTaskBelongsToProject(taskId: string, projectId: string) {
+    const task = await this.prisma.projectTask.findFirst({
+      where: { id: taskId, project_id: projectId },
+      select: { id: true },
+    })
+    if (!task) throw new NotFoundException('Tarefa não encontrada neste projeto')
+  }
+
+  private async assertUserBelongsToTenant(userId: string, tenantId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, tenant_id: tenantId, deleted_at: null },
+      select: { id: true },
+    })
+    if (!user) throw new ForbiddenException('Usuário não pertence à organização')
   }
 }

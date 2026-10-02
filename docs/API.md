@@ -87,7 +87,19 @@ Retorna os dados do usuário autenticado.
 Retorna o perfil completo do usuário logado.
 
 ### GET `/users`
-Lista usuários do tenant. Requer permissão `users:list`.
+Lista usuários da organização. Requer permissão `users:read`.
+
+### PATCH `/users/me`
+Atualiza nome, telefone e avatar do usuário autenticado.
+
+### PATCH `/users/me/password`
+Valida a senha atual, troca a senha e revoga todas as sessões de renovação.
+
+### PUT `/users/:id/roles`
+Substitui os papéis do usuário, validando a organização e preservando o último administrador.
+
+### DELETE `/users/:id`
+Desativa o usuário e revoga suas sessões. Não permite autodesativação nem remoção do último administrador.
 
 ---
 
@@ -104,6 +116,9 @@ Retorna estatísticas consolidadas: total de projetos, usuários, receitas, desp
 
 ### GET `/tenants/me/roles`
 Lista papéis (roles) do tenant.
+
+### POST/PATCH/DELETE `/tenants/me/roles[/:id]`
+Gerencia papéis personalizados. Papéis de sistema e a permissão global `*` são protegidos.
 
 ### GET `/tenants/me/invites`
 Lista convites pendentes.
@@ -346,6 +361,34 @@ Adiciona uma categoria ao orçamento.
 
 ### POST `/financial/budgets/:id/categories/:catId/items`
 Adiciona um item a uma categoria.
+
+---
+
+## Parcerias
+
+- `GET/POST /partners`: lista e cadastra parceiros.
+- `PATCH /partners/:id`: atualiza parceiro.
+- `GET/POST /partnerships`: lista e cria propostas/parcerias.
+- `PATCH /partnerships/:id`: atualiza situação e dados da parceria.
+
+Todos os vínculos com projetos e parceiros são revalidados na organização autenticada.
+
+## Prestação de contas
+
+- `GET/POST /accountability`: lista e cria prestações.
+- `GET /accountability/:id`: consulta itens e glosas.
+- `POST /accountability/:id/consolidate`: consolida transações aprovadas/pagas do período.
+- `PATCH /accountability/:id/status`: executa transição válida de situação.
+- `GET /accountability/:id/export.csv`: exporta dados rastreáveis.
+
+## Relatórios
+
+- `GET /reports/summary`: indicadores reais com filtros de projeto e período.
+- `GET /reports/financial.csv`: exporta as movimentações permitidas ao usuário.
+
+## Beneficiários, professores e editais
+
+Os recursos `/beneficiarios`, `/professores` e `/editais` oferecem CRUD, pesquisa, paginação e sub-recursos de vínculos conforme as permissões do usuário. IDs relacionados são sempre validados no tenant autenticado.
 
 ---
 

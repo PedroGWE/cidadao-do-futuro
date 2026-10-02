@@ -24,6 +24,7 @@ export class RolesGuard implements CanActivate {
 
     const req = context.switchToHttp().getRequest<FastifyRequest & { user: JwtPayload }>()
     const userPerms: string[] = req.user?.permissions ?? []
+    if (userPerms.includes('*')) return true
     return required.every((p) => userPerms.includes(p))
   }
 }

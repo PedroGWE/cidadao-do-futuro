@@ -178,7 +178,6 @@ export class DocumentsService {
 
     const key = `${tenantId}/${randomUUID()}${extname(file.filename) || ''}`
     await this.storage.save(key, file.buffer)
-    if (existing) await this.storage.delete(existing.file_url).catch(() => undefined)
 
     const data = {
       file_url: key,
@@ -191,12 +190,21 @@ export class DocumentsService {
       uploaded_by: userId,
     }
 
-    return this.prisma.institutionalDocument.upsert({
-      where: { tenant_id_doc_type_id: { tenant_id: tenantId, doc_type_id: docTypeId } },
-      create: { tenant_id: tenantId, doc_type_id: docTypeId, ...data },
-      update: data,
-      select: DOC_SELECT,
-    })
+    try {
+      const document = await this.prisma.institutionalDocument.upsert({
+        where: { tenant_id_doc_type_id: { tenant_id: tenantId, doc_type_id: docTypeId } },
+        create: { tenant_id: tenantId, doc_type_id: docTypeId, ...data },
+        update: data,
+        select: DOC_SELECT,
+      })
+      if (existing?.file_url && existing.file_url !== key) {
+        await this.storage.delete(existing.file_url).catch(() => undefined)
+      }
+      return document
+    } catch (error) {
+      await this.storage.delete(key).catch(() => undefined)
+      throw error
+    }
   }
 
   /** Remove o arquivo e o registro; o tipo volta a aparecer como PENDENTE. */

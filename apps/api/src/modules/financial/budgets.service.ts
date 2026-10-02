@@ -40,6 +40,13 @@ export class BudgetsService {
   }
 
   async create(tenantId: string, dto: CreateBudgetDto) {
+    if (dto.project_id) {
+      const project = await this.prisma.project.findFirst({
+        where: { id: dto.project_id, tenant_id: tenantId, deleted_at: null },
+        select: { id: true },
+      })
+      if (!project) throw new NotFoundException('Projeto não encontrado')
+    }
     return this.prisma.budget.create({
       data: {
         tenant_id: tenantId,
@@ -76,7 +83,12 @@ export class BudgetsService {
 
   async addItem(tenantId: string, budgetId: string, categoryId: string, dto: CreateBudgetItemDto) {
     await this.assertBelongsToTenant(budgetId, tenantId)
-    const totalValue = Number(dto.quantity) * Number(dto.unit_value)
+    const category = await this.prisma.budgetCategory.findFirst({
+      where: { id: categoryId, budget_id: budgetId },
+      select: { id: true },
+    })
+    if (!category) throw new NotFoundException('Categoria não encontrada neste orçamento')
+    const totalValue = new Prisma.Decimal(dto.quantity).mul(new Prisma.Decimal(dto.unit_value))
     const item = await this.prisma.budgetItem.create({
       data: {
         category_id: categoryId,

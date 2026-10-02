@@ -1,6 +1,6 @@
 # Roadmap de Melhorias
 
-Este documento registra as melhorias planejadas para o Cidadão do Futuro, organizadas por prioridade e módulo.
+Este documento registra as melhorias planejadas para o Semevo, organizadas por prioridade e módulo.
 
 ---
 

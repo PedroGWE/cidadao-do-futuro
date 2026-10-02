@@ -1,14 +1,13 @@
 import { useState } from 'react'
+import Image from 'next/image'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
-// Sistema de tenant único — organização fixa
-const TENANT_SLUG = 'cidadao'
-
 const schema = z.object({
+  tenantSlug: z.string().trim().min(2, 'Informe a organização'),
   email: z.string().email('E-mail inválido'),
   password: z.string().min(8, 'Mínimo 8 caracteres'),
 })
@@ -28,7 +27,7 @@ export default function LoginPage() {
   async function onSubmit(data: FormData) {
     setServerError('')
     try {
-      await login(data.email, data.password, TENANT_SLUG)
+      await login(data.email, data.password, data.tenantSlug)
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -41,14 +40,19 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-gray-100 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Cidadão do Futuro" className="mx-auto h-28 w-auto" />
-          <p className="text-gray-500 mt-1 text-sm">Gestão de projetos sociais</p>
+          <Image src="/brand/Semevo_Logo_Principal.png" alt="Semevo - Gestão que faz crescer" width={640} height={260} priority className="mx-auto" style={{ height: '7rem', width: 'auto' }} />
+          <p className="mt-2 text-sm font-medium tracking-wide text-brand-700">Gestão que faz crescer.</p>
         </div>
 
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Entrar na plataforma</h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div>
+              <label htmlFor="tenantSlug" className="label">Organização</label>
+              <input id="tenantSlug" className="input" placeholder="ex: instituto-exemplo" {...register('tenantSlug')} />
+              {errors.tenantSlug && <p className="mt-1 text-xs text-red-600">{errors.tenantSlug.message}</p>}
+            </div>
             <div>
               <label htmlFor="email" className="label">
                 E-mail

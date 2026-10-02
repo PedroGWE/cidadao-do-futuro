@@ -97,4 +97,16 @@ describe('DocumentsService.upload', () => {
       }),
     )
   })
+
+  it('preserva o arquivo anterior e remove o novo quando o banco falha', async () => {
+    const { prisma, storage } = makeMocks()
+    prisma.institutionalDocument.findUnique.mockResolvedValue({ id: 'doc-1', file_url: 't1/old.pdf' })
+    prisma.institutionalDocument.upsert.mockRejectedValue(new Error('database unavailable'))
+    const service = new DocumentsService(prisma as any, storage as any)
+
+    await expect(service.upload('t1', 'u1', 'type-1', pdf())).rejects.toThrow('database unavailable')
+
+    expect(storage.delete).toHaveBeenCalledTimes(1)
+    expect(storage.delete).not.toHaveBeenCalledWith('t1/old.pdf')
+  })
 })

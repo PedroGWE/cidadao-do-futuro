@@ -8,7 +8,12 @@ export function useAuth() {
   const { user, tenantSlug, setAuth, clear } = useAuthStore()
 
   async function login(email: string, password: string, slug: string) {
-    const { data } = await api.post('/auth/login', { email, password, tenantSlug: slug })
+    const { data } = await api.post('/auth/login', {
+      email: email.trim().toLowerCase(),
+      password,
+      tenantSlug: slug.trim().toLowerCase(),
+    })
+
     setAccessToken(data.accessToken)
     Cookies.set('refresh_token', data.refreshToken, { expires: 7, sameSite: 'strict' })
     Cookies.set('tenant_slug', slug, { expires: 7, sameSite: 'strict' })
@@ -16,7 +21,7 @@ export function useAuth() {
       localStorage.setItem('auth_user', JSON.stringify(data.user))
     }
     setAuth(data.user, slug)
-    await router.push(`/${slug}`)
+    await router.push(`/${slug}/dashboard`)
   }
 
   async function logout() {

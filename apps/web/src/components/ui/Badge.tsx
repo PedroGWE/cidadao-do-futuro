@@ -17,11 +17,33 @@ const variants: Record<string, string> = {
   // documentos institucionais
   VALIDO: 'bg-growth-100 text-growth-700',
   VENCIDO: 'bg-red-100 text-red-600',
+  NAO_MAPEADO: 'bg-gray-100 text-gray-500',
+  // editais
+  PNCP: 'bg-brand-100 text-brand-800',
+  MANUAL: 'bg-violet-100 text-violet-700',
+  SALVO: 'bg-gray-100 text-gray-600',
+  EM_PREPARACAO: 'bg-amber-100 text-amber-700',
+  INSCRITO: 'bg-blue-100 text-blue-700',
+  REPROVADO: 'bg-red-100 text-red-600',
+  ENCERRADO: 'bg-gray-100 text-gray-500',
   // transaction type
   RECEITA: 'bg-emerald-100 text-emerald-700',
   DESPESA: 'bg-red-100 text-red-600',
   TRANSFERENCIA: 'bg-blue-100 text-blue-700',
   DEVOLUCAO: 'bg-amber-100 text-amber-700',
+  // beneficiários
+  ATIVO: 'bg-emerald-100 text-emerald-700',
+  INATIVO: 'bg-gray-100 text-gray-500',
+  EGRESSO: 'bg-blue-100 text-blue-700',
+  EM_ESPERA: 'bg-amber-100 text-amber-700',
+  DESLIGADO: 'bg-red-100 text-red-600',
+  // professores — tipo de vínculo
+  VOLUNTARIO: 'bg-violet-100 text-violet-700',
+  CLT: 'bg-brand-100 text-brand-800',
+  AUTONOMO_PJ: 'bg-cyan-100 text-cyan-700',
+  PRESTADOR_SERVICO: 'bg-orange-100 text-orange-700',
+  // professores — status
+  AFASTADO: 'bg-yellow-100 text-yellow-700',
 }
 
 const labels: Record<string, string> = {
@@ -35,6 +57,14 @@ const labels: Record<string, string> = {
   PENDENTE: 'Pendente',
   VALIDO: 'Válido',
   VENCIDO: 'Vencido',
+  NAO_MAPEADO: 'Não mapeado',
+  PNCP: 'PNCP',
+  MANUAL: 'Manual',
+  SALVO: 'Salvo',
+  EM_PREPARACAO: 'Em preparação',
+  INSCRITO: 'Inscrito',
+  REPROVADO: 'Reprovado',
+  ENCERRADO: 'Encerrado',
   PAGO: 'Pago',
   ESTORNADO: 'Estornado',
   RECEITA: 'Receita',
@@ -47,6 +77,19 @@ const labels: Record<string, string> = {
   ASSISTENCIA_SOCIAL: 'Assistência Social',
   SAUDE: 'Saúde',
   AMBIENTAL: 'Ambiental',
+  // beneficiários
+  ATIVO: 'Ativo',
+  INATIVO: 'Inativo',
+  EGRESSO: 'Egresso',
+  EM_ESPERA: 'Em espera',
+  DESLIGADO: 'Desligado',
+  // professores — tipo de vínculo
+  VOLUNTARIO: 'Voluntário',
+  CLT: 'CLT',
+  AUTONOMO_PJ: 'Autônomo / PJ',
+  PRESTADOR_SERVICO: 'Prestador de Serviço',
+  // professores — status
+  AFASTADO: 'Afastado',
 }
 
 export function Badge({ value, className }: { value: string; className?: string }) {

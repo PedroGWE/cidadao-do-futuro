@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
 import type { CreateTransactionDto } from './dto/create-transaction.dto'
@@ -79,6 +79,8 @@ export class TransactionsService {
   }
 
   async create(tenantId: string, userId: string, dto: CreateTransactionDto) {
+    if (dto.project_id) await this.assertProjectBelongsToTenant(dto.project_id, tenantId)
+    if (dto.cost_center_id) await this.assertCostCenterBelongsToTenant(dto.cost_center_id, tenantId)
     return this.prisma.transaction.create({
       data: {
         tenant_id: tenantId,
@@ -100,30 +102,32 @@ export class TransactionsService {
   }
 
   async approve(tenantId: string, id: string, userId: string) {
-    await this.assertBelongsToTenant(id, tenantId)
-    return this.prisma.transaction.update({
-      where: { id },
+    const result = await this.prisma.transaction.updateMany({
+      where: { id, tenant_id: tenantId, status: 'PENDENTE' },
       data: { status: 'APROVADO', approved_by: userId },
-      select: TX_SELECT,
     })
+    if (result.count !== 1) throw new ConflictException('Somente transações pendentes podem ser aprovadas')
+    return this.findOne(tenantId, id)
   }
 
   async markPaid(tenantId: string, id: string) {
-    await this.assertBelongsToTenant(id, tenantId)
-    return this.prisma.transaction.update({
-      where: { id },
+    const result = await this.prisma.transaction.updateMany({
+      where: { id, tenant_id: tenantId, status: 'APROVADO' },
       data: { status: 'PAGO', paid_at: new Date() },
-      select: TX_SELECT,
     })
+    if (result.count !== 1) {
+      throw new ConflictException('Somente uma transação aprovada e ainda não paga pode ser paga')
+    }
+    return this.findOne(tenantId, id)
   }
 
   async cancel(tenantId: string, id: string) {
-    await this.assertBelongsToTenant(id, tenantId)
-    return this.prisma.transaction.update({
-      where: { id },
+    const result = await this.prisma.transaction.updateMany({
+      where: { id, tenant_id: tenantId, status: { in: ['PENDENTE', 'APROVADO'] } },
       data: { status: 'CANCELADO' },
-      select: TX_SELECT,
     })
+    if (result.count !== 1) throw new ConflictException('Transação paga ou já cancelada não pode ser cancelada')
+    return this.findOne(tenantId, id)
   }
 
   async getSummary(tenantId: string, filters: { project_id?: string; date_from?: string; date_to?: string }) {
@@ -138,22 +142,46 @@ export class TransactionsService {
         },
       }),
     }
-    const [receitas, despesas] = await Promise.all([
+    const [receitas, despesas, pendentes] = await Promise.all([
       this.prisma.transaction.aggregate({ where: { ...where, type: 'RECEITA' }, _sum: { amount: true }, _count: true }),
       this.prisma.transaction.aggregate({ where: { ...where, type: 'DESPESA' }, _sum: { amount: true }, _count: true }),
+      this.prisma.transaction.count({
+        where: {
+          tenant_id: tenantId,
+          status: 'PENDENTE',
+          ...(filters.project_id && { project_id: filters.project_id }),
+          ...((filters.date_from || filters.date_to) && {
+            date: {
+              ...(filters.date_from && { gte: new Date(filters.date_from) }),
+              ...(filters.date_to && { lte: new Date(filters.date_to) }),
+            },
+          }),
+        },
+      }),
     ])
     const totalReceitas = Number(receitas._sum.amount ?? 0)
     const totalDespesas = Number(despesas._sum.amount ?? 0)
     return {
-      receitas: { total: totalReceitas, count: receitas._count },
-      despesas: { total: totalDespesas, count: despesas._count },
+      receitas: totalReceitas,
+      despesas: totalDespesas,
       saldo: totalReceitas - totalDespesas,
+      pendentes,
+      quantidadeReceitas: receitas._count,
+      quantidadeDespesas: despesas._count,
     }
   }
 
   // ── Payment Orders ────────────────────────────────────────────
 
   async createPaymentOrder(tenantId: string, dto: CreatePaymentOrderDto) {
+    if (dto.transaction_id) {
+      const transaction = await this.prisma.transaction.findFirst({
+        where: { id: dto.transaction_id, tenant_id: tenantId },
+        select: { id: true, status: true },
+      })
+      if (!transaction) throw new NotFoundException('Transação não encontrada')
+      if (transaction.status === 'CANCELADO') throw new ConflictException('Transação cancelada não aceita pagamento')
+    }
     return this.prisma.paymentOrder.create({
       data: {
         tenant_id: tenantId,
@@ -180,17 +208,24 @@ export class TransactionsService {
   }
 
   async approvePaymentOrder(tenantId: string, id: string, userId: string) {
-    const po = await this.prisma.paymentOrder.findFirst({ where: { id, tenant_id: tenantId } })
+    const po = await this.prisma.paymentOrder.findFirst({
+      where: { id, tenant_id: tenantId },
+      include: { transaction: { select: { status: true } } },
+    })
     if (!po) throw new NotFoundException()
-    return this.prisma.paymentOrder.update({
-      where: { id },
+    if (po.transaction?.status === 'CANCELADO') throw new ConflictException('Transação cancelada não pode ser paga')
+    const result = await this.prisma.paymentOrder.updateMany({
+      where: { id, tenant_id: tenantId, status: 'PENDENTE' },
       data: { status: 'PAGO', approved_by: userId, paid_at: new Date() },
     })
+    if (result.count !== 1) throw new ConflictException('Ordem de pagamento já processada')
+    return this.prisma.paymentOrder.findFirst({ where: { id, tenant_id: tenantId } })
   }
 
   // ── Invoices ──────────────────────────────────────────────────
 
   async createInvoice(tenantId: string, dto: CreateInvoiceDto) {
+    if (dto.transaction_id) await this.assertBelongsToTenant(dto.transaction_id, tenantId)
     return this.prisma.invoice.create({
       data: {
         tenant_id: tenantId,
@@ -220,5 +255,21 @@ export class TransactionsService {
   private async assertBelongsToTenant(id: string, tenantId: string) {
     const tx = await this.prisma.transaction.findFirst({ where: { id, tenant_id: tenantId }, select: { id: true } })
     if (!tx) throw new NotFoundException('Transação não encontrada')
+  }
+
+  private async assertProjectBelongsToTenant(id: string, tenantId: string) {
+    const project = await this.prisma.project.findFirst({
+      where: { id, tenant_id: tenantId, deleted_at: null },
+      select: { id: true },
+    })
+    if (!project) throw new NotFoundException('Projeto não encontrado')
+  }
+
+  private async assertCostCenterBelongsToTenant(id: string, tenantId: string) {
+    const costCenter = await this.prisma.costCenter.findFirst({
+      where: { id, tenant_id: tenantId },
+      select: { id: true },
+    })
+    if (!costCenter) throw new NotFoundException('Centro de custo não encontrado')
   }
 }
