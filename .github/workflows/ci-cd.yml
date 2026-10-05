@@ -38,6 +38,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        run: pnpm --filter @cidadao/api db:generate
+
+      - name: Build shared package for typecheck
+        run: pnpm --filter @cidadao/shared build
+
       - name: Lint and typecheck
         run: pnpm lint
 
