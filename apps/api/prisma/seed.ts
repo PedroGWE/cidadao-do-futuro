@@ -82,7 +82,7 @@ async function main() {
   console.log('✅ Seed criado:')
   console.log('   Tenant slug: demo')
   console.log('   Email: admin@demo.com')
-  console.log('   Senha: Admin@123')
+  console.log('   Senha inicial (somente para usuário novo): Admin@123')
 
   await seedDocumentDefaults()
 }
