@@ -4,6 +4,7 @@ import useSWR, { mutate } from 'swr'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import axios from 'axios'
 import { Plus, Search, FolderKanban } from 'lucide-react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Badge } from '@/components/ui/Badge'
@@ -22,11 +23,14 @@ const PROJECT_STATUSES: ProjectStatus[] = [
 const schema = z.object({
   name: z.string().min(2, 'Mínimo 2 caracteres'),
   type: z.enum(['CULTURAL', 'ESPORTIVO', 'EDUCACIONAL', 'ASSISTENCIA_SOCIAL', 'SAUDE', 'AMBIENTAL']),
-  description: z.string().optional(),
-  code: z.string().optional(),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
-  total_budget: z.coerce.number().positive().optional(),
+  description: z.string().transform((value) => value.trim() || undefined).optional(),
+  code: z.string().transform((value) => value.trim() || undefined).optional(),
+  start_date: z.string().transform((value) => value || undefined).optional(),
+  end_date: z.string().transform((value) => value || undefined).optional(),
+  total_budget: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.coerce.number().positive().optional(),
+  ),
 })
 
 type FormData = z.infer<typeof schema>
@@ -60,6 +64,7 @@ export default function ProjetosPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const params: Record<string, string | number> = { page, limit: 20 }
   if (search) params.search = search
@@ -78,10 +83,20 @@ export default function ProjetosPage() {
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
   async function onSubmit(dto: FormData) {
-    await projectsService.create(dto)
-    mutate(key)
-    reset()
-    setModalOpen(false)
+    setSubmitError('')
+    try {
+      await projectsService.create(dto)
+      await mutate(key)
+      reset()
+      setModalOpen(false)
+    } catch (error) {
+      const responseMessage = axios.isAxiosError(error) ? error.response?.data?.message : undefined
+      setSubmitError(
+        Array.isArray(responseMessage)
+          ? responseMessage.join('. ')
+          : responseMessage || 'Não foi possível criar o projeto.',
+      )
+    }
   }
 
   return (
@@ -184,6 +199,9 @@ export default function ProjetosPage() {
       {/* Modal Criar Projeto */}
       <Modal open={modalOpen} onClose={() => { setModalOpen(false); reset() }} title="Novo projeto">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {submitError && (
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{submitError}</div>
+          )}
           <div>
             <label className="label">Nome do projeto *</label>
             <input className="input" placeholder="Ex: Projeto Arte na Escola" {...register('name')} />
