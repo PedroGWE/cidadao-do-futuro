@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import * as bcrypt from 'bcryptjs'
 import { DEFAULT_DOCUMENT_CATEGORIES } from '../src/modules/documents/default-documents'
+import { seedDemoData } from './demo-data'
 
 const prisma = new PrismaClient()
 
@@ -31,8 +32,8 @@ async function seedDocumentDefaults() {
 }
 
 async function main() {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('O seed de demonstração não pode ser executado em produção. Use db:seed:admin.')
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED_IN_PRODUCTION !== 'true') {
+    throw new Error('O seed de demonstração em produção exige ALLOW_DEMO_SEED_IN_PRODUCTION=true.')
   }
 
   const tenant = await prisma.tenant.upsert({
@@ -75,6 +76,8 @@ async function main() {
     create: { user_id: user.id, role_id: adminRole.id },
     update: {},
   })
+
+  await seedDemoData(prisma, tenant.id, user.id)
 
   console.log('✅ Seed criado:')
   console.log('   Tenant slug: demo')
