@@ -23,6 +23,8 @@ export interface Beneficiario {
 }
 
 export interface BeneficiarioDetail extends Omit<Beneficiario, '_count'> {
+  foto_url: string | null
+  race: string | null
   rg_certidao: string | null
   cep: string | null
   logradouro: string | null
@@ -33,6 +35,8 @@ export interface BeneficiarioDetail extends Omit<Beneficiario, '_count'> {
   uf_endereco: string | null
   escola: string | null
   serie_ano: string | null
+  renda_familiar: number | null
+  pessoas_residencia: number | null
   necessidades_especiais: string | null
   alergias: string | null
   medicamentos: string | null

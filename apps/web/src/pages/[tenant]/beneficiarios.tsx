@@ -3,7 +3,7 @@ import { GetServerSideProps } from 'next'
 import useSWR, { useSWRConfig } from 'swr'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { PlusCircle, Search, Users, ChevronLeft, ChevronRight, Trash2, X, Edit2, ChevronDown, School, Phone, FolderKanban, ShieldCheck } from 'lucide-react'
+import { PlusCircle, Search, Users, ChevronLeft, ChevronRight, Trash2, X, Edit2, ChevronDown, School, Phone, FolderKanban, ShieldCheck, MapPin, HeartPulse, UserRound, BookOpen, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Badge } from '@/components/ui/Badge'
 import { PageSpinner } from '@/components/ui/Spinner'
@@ -38,6 +38,10 @@ function getAge(d?: string | null) {
   let age = today.getFullYear() - birth.getFullYear()
   if (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate())) age--
   return age
+}
+
+function DetailItem({ label, value }: { label: string; value?: string | number | null }) {
+  return <div><p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{label}</p><p className="mt-0.5 text-sm text-gray-800">{value || 'Não informado'}</p></div>
 }
 
 const STEPS = ['Dados Pessoais', 'Endereço', 'Turma / Escola', 'LGPD']
@@ -325,7 +329,7 @@ function DetailDrawer({
   onClose: () => void
   onRefresh: () => void
 }) {
-  const [tab, setTab] = useState<'responsaveis' | 'vinculos'>('responsaveis')
+  const [tab, setTab] = useState<'resumo' | 'responsaveis' | 'vinculos'>('resumo')
   const [showAddResp, setShowAddResp] = useState(false)
   const [showAddVinculo, setShowAddVinculo] = useState(false)
 
@@ -359,17 +363,20 @@ function DetailDrawer({
   }
 
   return (
-    <div className="fixed inset-y-0 right-0 w-[480px] bg-white shadow-2xl z-40 flex flex-col border-l border-gray-200">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-        <div>
-          <p className="font-semibold text-gray-900">{beneficiario.name}</p>
-          <p className="text-xs text-gray-500">{beneficiario.cpf ?? 'CPF não informado'}</p>
+    <div className="fixed inset-y-0 right-0 w-full sm:w-[560px] bg-white shadow-2xl z-40 flex flex-col border-l border-gray-200">
+      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-50 font-bold text-brand-700">{beneficiario.name.split(' ').slice(0, 2).map((part) => part[0]).join('')}</span>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-gray-900">{beneficiario.name}</p>
+            <p className="text-xs text-gray-500">{getAge(beneficiario.birth_date) != null ? `${getAge(beneficiario.birth_date)} anos` : 'Idade não informada'} · {beneficiario.cpf ?? 'CPF não informado'}</p>
+          </div>
         </div>
         <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X className="h-4 w-4" /></button>
       </div>
 
       <div className="flex gap-0 border-b border-gray-200 px-6">
-        {(['responsaveis', 'vinculos'] as const).map((t) => (
+        {(['resumo', 'responsaveis', 'vinculos'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -377,12 +384,67 @@ function DetailDrawer({
               tab === t ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            {t === 'responsaveis' ? 'Responsáveis' : 'Vínculos'}
+            {t === 'resumo' ? 'Visão geral' : t === 'responsaveis' ? `Responsáveis (${beneficiario.responsaveis.length})` : `Vínculos (${beneficiario.vinculos_projetos.length})`}
           </button>
         ))}
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-4">
+        {tab === 'resumo' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-xl bg-brand-50 p-3 text-center"><p className="text-lg font-semibold text-brand-800">{beneficiario.serie_ano ?? '—'}</p><p className="text-[11px] text-brand-700">série / ano</p></div>
+              <div className="rounded-xl bg-blue-50 p-3 text-center"><p className="truncate text-lg font-semibold text-blue-800">{beneficiario.turma ?? '—'}</p><p className="text-[11px] text-blue-700">turma</p></div>
+              <div className="rounded-xl bg-emerald-50 p-3 text-center"><p className="text-lg font-semibold text-emerald-800">{beneficiario.vinculos_projetos.length}</p><p className="text-[11px] text-emerald-700">projetos</p></div>
+            </div>
+
+            <section className="rounded-xl border border-gray-200 p-4">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900"><UserRound className="h-4 w-4 text-brand-600" />Dados pessoais e contato</h3>
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                <DetailItem label="Nascimento" value={formatDate(beneficiario.birth_date)} />
+                <DetailItem label="Gênero" value={beneficiario.gender?.replaceAll('_', ' ')} />
+                <DetailItem label="RG / Certidão" value={beneficiario.rg_certidao} />
+                <DetailItem label="Raça / cor" value={beneficiario.race?.replaceAll('_', ' ')} />
+                <DetailItem label="Telefone" value={beneficiario.telefone} />
+                <DetailItem label="E-mail" value={beneficiario.email} />
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-gray-200 p-4">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900"><BookOpen className="h-4 w-4 text-brand-600" />Jornada educacional</h3>
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                <DetailItem label="Escola" value={beneficiario.escola} />
+                <DetailItem label="Série / ano" value={beneficiario.serie_ano} />
+                <DetailItem label="Turma" value={beneficiario.turma} />
+                <DetailItem label="Turno" value={beneficiario.turno} />
+                <div className="col-span-2"><DetailItem label="Projeto principal" value={beneficiario.project?.name} /></div>
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-gray-200 p-4">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900"><MapPin className="h-4 w-4 text-brand-600" />Endereço e contexto familiar</h3>
+              <p className="mb-3 text-sm text-gray-700">{[beneficiario.logradouro, beneficiario.numero, beneficiario.complemento, beneficiario.bairro, beneficiario.cidade, beneficiario.uf_endereco].filter(Boolean).join(', ') || 'Endereço não informado'}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <DetailItem label="Pessoas na residência" value={beneficiario.pessoas_residencia} />
+                <DetailItem label="Renda familiar" value={beneficiario.renda_familiar != null ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(beneficiario.renda_familiar) : null} />
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-gray-200 p-4">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900"><HeartPulse className="h-4 w-4 text-rose-500" />Saúde e cuidados</h3>
+              <div className="space-y-3"><DetailItem label="Necessidades especiais" value={beneficiario.necessidades_especiais} /><DetailItem label="Alergias" value={beneficiario.alergias} /><DetailItem label="Medicamentos em uso" value={beneficiario.medicamentos} /><DetailItem label="Observações gerais" value={beneficiario.observacoes_gerais} /></div>
+            </section>
+
+            <section className="rounded-xl border border-gray-200 p-4">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900"><ShieldCheck className="h-4 w-4 text-brand-600" />Consentimentos e proteção de dados</h3>
+              <div className="space-y-2">
+                <p className="flex items-center gap-2 text-sm text-gray-700">{beneficiario.termo_consentimento ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertTriangle className="h-4 w-4 text-amber-500" />} Termo de consentimento {beneficiario.termo_consentimento ? `assinado em ${formatDate(beneficiario.data_consentimento)}` : 'pendente'}</p>
+                <p className="flex items-center gap-2 text-sm text-gray-700">{beneficiario.autorizacao_uso_imagem ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertTriangle className="h-4 w-4 text-amber-500" />} Uso de imagem {beneficiario.autorizacao_uso_imagem ? 'autorizado' : 'não autorizado'}</p>
+              </div>
+            </section>
+          </div>
+        )}
+
         {tab === 'responsaveis' && (
           <div className="space-y-3">
             {beneficiario.responsaveis.map((r) => (

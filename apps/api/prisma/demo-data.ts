@@ -85,13 +85,21 @@ export async function seedDemoData(prisma: PrismaClient, tenantId: string, admin
       where: { tenant_id_cpf: { tenant_id: tenantId, cpf } },
       create: {
         tenant_id: tenantId, project_id: educationProject.id, name, cpf, birth_date: date(birth), gender, race,
-        status: 'ATIVO', enrollment_date: date('2026-02-09'), telefone: '(11) 98888-2026',
+        status: 'ATIVO', enrollment_date: date('2026-02-09'), telefone: '(11) 98888-2026', email: `aluno.${cpf}@familia.demo`,
         cidade: 'São Paulo', uf_endereco: 'SP', bairro: 'Jardim Esperança', turma, turno,
         escola: 'EMEF Caminhos do Saber', serie_ano: serie, renda_familiar: '2350.00', pessoas_residencia: 4,
         termo_consentimento: true, data_consentimento: date('2026-02-09'), autorizacao_uso_imagem: true,
+        observacoes_gerais: 'Participa ativamente das oficinas e demonstra boa integração com a turma.',
         created_by: adminId,
       },
-      update: { project_id: educationProject.id, status: 'ATIVO', turma, turno },
+      update: {
+        project_id: educationProject.id, status: 'ATIVO', birth_date: date(birth), gender, race,
+        telefone: '(11) 98888-2026', email: `aluno.${cpf}@familia.demo`, cidade: 'São Paulo',
+        uf_endereco: 'SP', bairro: 'Jardim Esperança', turma, turno, escola: 'EMEF Caminhos do Saber',
+        serie_ano: serie, renda_familiar: '2350.00', pessoas_residencia: 4,
+        termo_consentimento: true, data_consentimento: date('2026-02-09'), autorizacao_uso_imagem: true,
+        observacoes_gerais: 'Participa ativamente das oficinas e demonstra boa integração com a turma.',
+      },
     })
     beneficiaries.push(beneficiary)
     await prisma.beneficiarioProjeto.upsert({
