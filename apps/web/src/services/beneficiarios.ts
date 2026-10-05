@@ -12,6 +12,8 @@ export interface Beneficiario {
   email: string | null
   turma: string | null
   turno: string | null
+  escola: string | null
+  serie_ano: string | null
   termo_consentimento: boolean
   autorizacao_uso_imagem: boolean
   project: { id: string; name: string } | null

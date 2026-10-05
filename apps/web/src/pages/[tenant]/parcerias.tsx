@@ -2,11 +2,12 @@ import { FormEvent, useState } from 'react'
 import useSWR from 'swr'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import api from '@/lib/api'
+import PartnershipsDashboard from '@/components/partnerships/PartnershipsDashboard'
 
 type Partner = { id: string; name: string; type: string; status: string; email?: string; _count: { partnerships: number } }
 type Partnership = { id: string; type: string; status: string; value?: string; partner: { name: string }; project?: { name: string } }
 
-export default function PartnershipsPage() {
+function LegacyPartnershipsPage() {
   const { data: partners, error, isLoading, mutate } = useSWR<Partner[]>('/partners', (url: string) => api.get(url).then((r) => r.data))
   const { data: partnerships, mutate: mutatePartnerships } = useSWR<Partnership[]>('/partnerships', (url: string) => api.get(url).then((r) => r.data))
   const [name, setName] = useState('')
@@ -52,3 +53,5 @@ export default function PartnershipsPage() {
     </section>
   </div></DashboardLayout>
 }
+
+export default PartnershipsDashboard

@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   PlusCircle, Search, GraduationCap, ChevronLeft, ChevronRight,
-  Trash2, X, Edit2, History, Lock,
+  Trash2, X, Edit2, History, Lock, Phone, Mail, BriefcaseBusiness, Clock3,
 } from 'lucide-react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Badge } from '@/components/ui/Badge'
@@ -588,8 +588,8 @@ export default function ProfessoresPage() {
           </select>
         </div>
 
-        {/* Table */}
-        <div className="card p-0 overflow-hidden">
+        {/* Educator summaries */}
+        <div>
           {isLoading ? (
             <PageSpinner />
           ) : !data?.data.length ? (
@@ -601,57 +601,54 @@ export default function ProfessoresPage() {
               <p className="text-xs text-gray-500 mt-1">Clique em &ldquo;Novo professor&rdquo; para cadastrar.</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {['Nome', 'CPF', 'Tipo de vínculo', 'Status', 'Disciplinas', 'Projetos', 'Cadastro', ''].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
-                {data.data.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => setDetailId(detailId === p.id ? null : p.id)}
-                        className="text-sm font-medium text-brand-700 hover:underline text-left"
-                      >
-                        {p.nome_completo}
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {data.data.map((p) => {
+                const weeklyHours = p.projetos.reduce((total, item) => total + (item.carga_horaria_semanal ?? 0), 0)
+                return (
+                  <article key={p.id} className="card group p-5 hover:border-brand-200 hover:shadow-md transition-all">
+                    <div className="flex items-start justify-between gap-3">
+                      <button onClick={() => setDetailId(detailId === p.id ? null : p.id)} className="flex min-w-0 items-center gap-3 text-left">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-violet-50 text-sm font-bold text-violet-700">
+                          {p.nome_completo.split(' ').slice(0, 2).map((part) => part[0]).join('')}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-semibold text-gray-900 group-hover:text-brand-700">{p.nome_completo}</span>
+                          <span className="block text-xs text-gray-500">Desde {formatDate(p.data_admissao ?? p.created_at)}</span>
+                        </span>
                       </button>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{p.cpf}</td>
-                    <td className="px-4 py-3"><Badge value={p.tipo_vinculo} /></td>
-                    <td className="px-4 py-3"><Badge value={p.status} /></td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {p.disciplinas.slice(0, 2).map((d) => (
-                          <span key={d} className="inline-block bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 text-xs">{d}</span>
-                        ))}
-                        {p.disciplinas.length > 2 && (
-                          <span className="text-xs text-gray-400">+{p.disciplinas.length - 2}</span>
-                        )}
-                        {p.disciplinas.length === 0 && <span className="text-xs text-gray-400">—</span>}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{p._count.projetos}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{formatDate(p.created_at)}</td>
-                    <td className="px-4 py-3">
+                      <Badge value={p.status} />
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-1.5 min-h-[26px]">
+                      {p.disciplinas.slice(0, 3).map((subject) => <span key={subject} className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">{subject}</span>)}
+                      {p.disciplinas.length > 3 && <span className="px-1 py-1 text-xs text-gray-400">+{p.disciplinas.length - 3}</span>}
+                      {!p.disciplinas.length && <span className="text-xs text-gray-400">Disciplinas não informadas</span>}
+                    </div>
+
+                    <div className="mt-4 space-y-2.5 text-sm text-gray-600">
+                      <p className="flex items-center gap-2"><BriefcaseBusiness className="h-4 w-4 text-gray-400" /><span>{TIPO_VINCULO_LABELS[p.tipo_vinculo]}</span></p>
+                      <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-gray-400" /><span className="truncate">{p.email ?? 'E-mail não informado'}</span></p>
+                      <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-gray-400" /><span>{p.telefone ?? 'Telefone não informado'}</span></p>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 text-center">
+                      <div><p className="text-base font-semibold text-gray-900">{p.projetos.length}</p><p className="text-[11px] text-gray-500">projetos ativos</p></div>
+                      <div><p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-900"><Clock3 className="h-4 w-4 text-gray-400" />{weeklyHours || '—'}</p><p className="text-[11px] text-gray-500">horas semanais</p></div>
+                    </div>
+
+                    {p.projetos[0] && <p className="mt-3 truncate text-xs text-gray-500">Atuação: <span className="font-medium text-gray-700">{p.projetos.map((item) => item.project.name).join(', ')}</span></p>}
+
+                    <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
+                      <button onClick={() => setDetailId(p.id)} className="text-sm font-medium text-brand-700 hover:text-brand-800">Ver perfil completo</button>
                       <div className="flex gap-1">
-                        <button onClick={() => openEdit(p)} className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700">
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                        <button onClick={() => handleDelete(p)} className="p-1 hover:bg-red-50 rounded text-gray-400 hover:text-red-600">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <button aria-label={`Editar ${p.nome_completo}`} onClick={() => openEdit(p)} className="p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700"><Edit2 className="h-4 w-4" /></button>
+                        <button aria-label={`Desligar ${p.nome_completo}`} onClick={() => handleDelete(p)} className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
           )}
         </div>
 

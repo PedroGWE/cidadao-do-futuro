@@ -202,5 +202,32 @@ export async function seedDemoData(prisma: PrismaClient, tenantId: string, admin
     await prisma.accountabilityReport.create({ data: { tenant_id: tenantId, project_id: educationProject.id, title: 'Relatório Parcial — 1º semestre de 2026', period_start: date('2026-02-01'), period_end: date('2026-06-30'), type: 'PARCIAL', status: 'APROVADO', total_received: '170000.00', total_spent: '47970.00', balance: '122030.00', submitted_at: date('2026-07-15'), approved_at: date('2026-08-04'), created_by: adminId } })
   }
 
+  const partnerSpecs = [
+    { name: 'Fundação Horizonte', type: 'OUTRO_OSC' as const, status: 'ATIVO' as const, email: 'projetos@fundacaohorizonte.demo', phone: '(11) 4002-1010', tags: ['educação', 'tecnologia'], notes: 'Parceira estratégica no fortalecimento pedagógico.' },
+    { name: 'Tecnova Brasil', type: 'EMPRESA' as const, status: 'ATIVO' as const, email: 'impacto@tecnova.demo', phone: '(11) 4002-2020', tags: ['tecnologia', 'voluntariado'], notes: 'Apoio financeiro e mentoria de carreira.' },
+    { name: 'Secretaria Municipal de Cultura', type: 'GOVERNO' as const, status: 'ATIVO' as const, email: 'parcerias@cultura.sp.demo', phone: '(11) 4002-3030', tags: ['cultura', 'território'], notes: 'Cooperação para uso de equipamentos culturais.' },
+    { name: 'Rede Alimenta Bem', type: 'EMPRESA' as const, status: 'PROSPECTO' as const, email: 'social@alimentabem.demo', phone: '(11) 4002-4040', tags: ['alimentação', 'doação'], notes: 'Prospecção para apoio aos lanches das oficinas.' },
+  ]
+  const seededPartners = []
+  for (const spec of partnerSpecs) {
+    let partner = await prisma.partner.findFirst({ where: { tenant_id: tenantId, name: spec.name } })
+    if (!partner) partner = await prisma.partner.create({ data: { tenant_id: tenantId, ...spec } })
+    else partner = await prisma.partner.update({ where: { id: partner.id }, data: { status: spec.status, email: spec.email, phone: spec.phone, tags: spec.tags, notes: spec.notes } })
+    seededPartners.push(partner)
+  }
+
+  const partnershipSpecs = [
+    { partner: seededPartners[0], project: educationProject, type: 'PATROCINIO' as const, status: 'ATIVO' as const, value: '45000.00', inKind: '8000.00', description: 'Financiamento do laboratório de tecnologia e formação de educadores.', start: '2026-02-01', end: '2026-12-18' },
+    { partner: seededPartners[1], project: educationProject, type: 'VOLUNTARIADO' as const, status: 'ATIVO' as const, value: '0.00', inKind: '18000.00', description: 'Mentorias mensais e doação de equipamentos recondicionados.', start: '2026-03-01', end: '2026-11-30' },
+    { partner: seededPartners[2], project: projects[1], type: 'PARCERIA_TECNICA' as const, status: 'ATIVO' as const, value: '25000.00', inKind: '12000.00', description: 'Cessão de espaços culturais e apoio à mostra de encerramento.', start: '2026-03-09', end: '2026-11-30' },
+    { partner: seededPartners[3], project: educationProject, type: 'DOACAO' as const, status: 'PROPOSTA' as const, value: '15000.00', inKind: '0.00', description: 'Fornecimento de alimentação para os ciclos de oficinas.', start: '2026-10-15', end: '2027-06-30' },
+  ]
+  for (const spec of partnershipSpecs) {
+    const existing = await prisma.partnership.findFirst({ where: { tenant_id: tenantId, partner_id: spec.partner.id, project_id: spec.project.id, type: spec.type } })
+    if (!existing) {
+      await prisma.partnership.create({ data: { tenant_id: tenantId, partner_id: spec.partner.id, project_id: spec.project.id, type: spec.type, status: spec.status, value: spec.value, in_kind_value: spec.inKind, description: spec.description, start_date: date(spec.start), end_date: date(spec.end) } })
+    }
+  }
+
   console.log('   Dados fictícios de apresentação criados/atualizados')
 }

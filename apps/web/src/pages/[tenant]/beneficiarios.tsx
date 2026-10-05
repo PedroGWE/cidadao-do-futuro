@@ -3,7 +3,7 @@ import { GetServerSideProps } from 'next'
 import useSWR, { useSWRConfig } from 'swr'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { PlusCircle, Search, Users, ChevronLeft, ChevronRight, Trash2, X, Edit2, ChevronDown } from 'lucide-react'
+import { PlusCircle, Search, Users, ChevronLeft, ChevronRight, Trash2, X, Edit2, ChevronDown, School, Phone, FolderKanban, ShieldCheck } from 'lucide-react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Badge } from '@/components/ui/Badge'
 import { PageSpinner } from '@/components/ui/Spinner'
@@ -29,6 +29,15 @@ import {
 function formatDate(d?: string | null) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('pt-BR')
+}
+
+function getAge(d?: string | null) {
+  if (!d) return null
+  const birth = new Date(d)
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  if (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate())) age--
+  return age
 }
 
 const STEPS = ['Dados Pessoais', 'Endereço', 'Turma / Escola', 'LGPD']
@@ -587,8 +596,8 @@ export default function BeneficiariosPage() {
           </select>
         </div>
 
-        {/* Table */}
-        <div className="card p-0 overflow-hidden">
+        {/* Student summaries */}
+        <div>
           {isLoading ? (
             <PageSpinner />
           ) : !data?.data.length ? (
@@ -600,47 +609,47 @@ export default function BeneficiariosPage() {
               <p className="text-xs text-gray-500 mt-1">Clique em &ldquo;Novo beneficiário&rdquo; para cadastrar.</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {['Nome', 'CPF', 'Status', 'Turma', 'Responsáveis', 'Vínculos', 'Cadastro', ''].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
-                {data.data.map((b) => (
-                  <tr key={b.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => setDetailId(detailId === b.id ? null : b.id)}
-                        className="text-sm font-medium text-brand-700 hover:underline text-left"
-                      >
-                        {b.name}
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {data.data.map((b) => {
+                const age = getAge(b.birth_date)
+                return (
+                  <article key={b.id} className="card group p-5 hover:border-brand-200 hover:shadow-md transition-all">
+                    <div className="flex items-start justify-between gap-3">
+                      <button onClick={() => setDetailId(detailId === b.id ? null : b.id)} className="flex min-w-0 items-center gap-3 text-left">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700">
+                          {b.name.split(' ').slice(0, 2).map((part) => part[0]).join('')}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-semibold text-gray-900 group-hover:text-brand-700">{b.name}</span>
+                          <span className="block text-xs text-gray-500">{age != null ? `${age} anos` : 'Idade não informada'} · {b.serie_ano ?? 'Série não informada'}</span>
+                        </span>
                       </button>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{b.cpf ?? '—'}</td>
-                    <td className="px-4 py-3"><Badge value={b.status} /></td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{b.turma ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{b._count.responsaveis}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{b._count.vinculos_projetos}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{formatDate(b.created_at)}</td>
-                    <td className="px-4 py-3">
+                      <Badge value={b.status} />
+                    </div>
+
+                    <div className="mt-4 space-y-2.5 text-sm text-gray-600">
+                      <p className="flex items-center gap-2"><School className="h-4 w-4 text-gray-400" /><span className="truncate">{b.turma ?? 'Sem turma'}{b.turno ? ` · ${b.turno}` : ''}</span></p>
+                      <p className="flex items-center gap-2"><FolderKanban className="h-4 w-4 text-gray-400" /><span className="truncate">{b.project?.name ?? 'Sem projeto principal'}</span></p>
+                      <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-gray-400" /><span>{b.telefone ?? 'Contato não informado'}</span></p>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-gray-50 p-3 text-center">
+                      <div><p className="text-base font-semibold text-gray-900">{b._count.responsaveis}</p><p className="text-[11px] text-gray-500">responsáveis</p></div>
+                      <div><p className="text-base font-semibold text-gray-900">{b._count.vinculos_projetos}</p><p className="text-[11px] text-gray-500">projetos</p></div>
+                      <div><ShieldCheck className={`mx-auto h-5 w-5 ${b.termo_consentimento ? 'text-emerald-600' : 'text-amber-500'}`} /><p className="text-[11px] text-gray-500">LGPD</p></div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
+                      <button onClick={() => setDetailId(b.id)} className="text-sm font-medium text-brand-700 hover:text-brand-800">Ver perfil completo</button>
                       <div className="flex gap-1">
-                        <button onClick={() => openEdit(b)} className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700">
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                        <button onClick={() => handleDelete(b)} className="p-1 hover:bg-red-50 rounded text-gray-400 hover:text-red-600">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <button aria-label={`Editar ${b.name}`} onClick={() => openEdit(b)} className="p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700"><Edit2 className="h-4 w-4" /></button>
+                        <button aria-label={`Remover ${b.name}`} onClick={() => handleDelete(b)} className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
           )}
         </div>
 

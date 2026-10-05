@@ -24,6 +24,8 @@ const BENEFICIARIO_SELECT = {
   email: true,
   turma: true,
   turno: true,
+  escola: true,
+  serie_ano: true,
   termo_consentimento: true,
   autorizacao_uso_imagem: true,
   project: { select: { id: true, name: true } },
