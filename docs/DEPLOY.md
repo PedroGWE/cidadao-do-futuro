@@ -108,6 +108,20 @@ CORS_ORIGINS=https://seu-dominio.com.br
 
 ## Atualização (Deploy Contínuo)
 
+O workflow `.github/workflows/ci-cd.yml` valida pull requests e pushes para
+`main`. Depois que lint, testes e build passam em um push para `main`, o job de
+deploy acessa o VPS por SSH e executa `infra/scripts/deploy.sh`.
+
+O ambiente `production` do GitHub Actions utiliza estes secrets:
+
+- `SSH_HOST`: host ou IP do VPS.
+- `SSH_USER`: usuário de deploy no VPS.
+- `SSH_PRIVATE_KEY`: chave SSH privada exclusiva da automação.
+- `SSH_KNOWN_HOSTS`: chave pública do host no formato de `known_hosts`.
+
+O deploy também pode ser iniciado manualmente em **Actions > CI/CD > Run
+workflow**. Pull requests executam somente a validação e nunca fazem deploy.
+
 ```bash
 cd /var/www/cidadao-futuro
 git pull origin main
