@@ -15,6 +15,7 @@ export interface TransferegovIntegration {
 
 export interface TransferegovRecord {
   id: string
+  source_module: string
   entity_type: 'PROPOSTA' | 'INSTRUMENTO'
   external_id: string
   proposal_external_id?: string | null

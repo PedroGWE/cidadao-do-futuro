@@ -19,8 +19,12 @@ function formatMoney(value?: string | null) {
 
 export default function TransferegovPage() {
   const configuration = useSWR('transferegov-configuration', transferegovService.configuration)
-  const records = useSWR('transferegov-records', transferegovService.records)
-  const history = useSWR('transferegov-history', transferegovService.history)
+  const history = useSWR('transferegov-history', transferegovService.history, {
+    refreshInterval: (runs) => runs?.some((run) => run.status === 'RUNNING' || run.status === 'PENDING') ? 5000 : 0,
+  })
+  const records = useSWR('transferegov-records', transferegovService.records, {
+    refreshInterval: () => history.data?.some((run) => run.status === 'RUNNING' || run.status === 'PENDING') ? 5000 : 0,
+  })
   const [cnpj, setCnpj] = useState('')
   const [automaticSync, setAutomaticSync] = useState(false)
   const [intervalHours, setIntervalHours] = useState(24)
@@ -57,7 +61,7 @@ export default function TransferegovPage() {
       if (action === 'discover') await transferegovService.discover()
       else await transferegovService.sync()
       await refreshAll()
-      setMessage({ kind: 'success', text: action === 'discover' ? 'Consulta concluída.' : 'Sincronização iniciada.' })
+      setMessage({ kind: 'success', text: action === 'discover' ? 'Consulta iniciada. A primeira busca histórica pode levar alguns minutos; os resultados aparecerão ao concluir.' : 'Sincronização iniciada.' })
     } catch (error) {
       setMessage({ kind: 'error', text: apiErrorMessage(error, 'Não foi possível consultar o Transferegov.') })
     } finally { setBusy(null) }
@@ -117,7 +121,7 @@ export default function TransferegovPage() {
         <section className="card space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold text-gray-900">Registros encontrados</h2><button className="btn-primary" onClick={importSelected} disabled={!selected.length || Boolean(busy)}>{busy === 'import' ? 'Importando...' : `Importar selecionados (${selected.length})`}</button></div>
           {!records.data ? <p className="text-sm text-gray-500">Carregando...</p> : records.data.length === 0 ? <p className="text-sm text-gray-500">Nenhum registro consultado ainda.</p> : (
-            <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b text-xs uppercase text-gray-500"><tr><th className="p-2"></th><th className="p-2">Tipo</th><th className="p-2">Objeto</th><th className="p-2">Situação</th><th className="p-2">Valor</th><th className="p-2">Destino</th></tr></thead><tbody className="divide-y">{records.data.map((record) => <tr key={record.id}><td className="p-2"><input aria-label={`Selecionar ${record.external_id}`} type="checkbox" checked={selected.includes(record.id)} disabled={Boolean(record.project)} onChange={() => toggle(record)} /></td><td className="p-2">{record.entity_type}</td><td className="max-w-md p-2"><p className="font-medium text-gray-900">{record.title ?? record.external_id}</p><p className="text-xs text-gray-500">{record.proponent_name ?? '—'}</p></td><td className="p-2">{record.official_status ?? '—'}</td><td className="p-2">{formatMoney(record.global_amount)}</td><td className="p-2">{record.project ? <span className="flex items-center gap-1 text-emerald-700"><CheckCircle2 className="h-4 w-4" /> {record.project.name}</span> : 'Não importado'}</td></tr>)}</tbody></table></div>
+            <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b text-xs uppercase text-gray-500"><tr><th className="p-2"></th><th className="p-2">Tipo / Fonte</th><th className="p-2">Objeto</th><th className="p-2">Situação</th><th className="p-2">Valor</th><th className="p-2">Destino</th></tr></thead><tbody className="divide-y">{records.data.map((record) => <tr key={record.id}><td className="p-2"><input aria-label={`Selecionar ${record.external_id}`} type="checkbox" checked={selected.includes(record.id)} disabled={Boolean(record.project)} onChange={() => toggle(record)} /></td><td className="p-2"><p>{record.entity_type}</p><p className="text-xs text-gray-500">{record.source_module === 'DISCRICIONARIAS_LEGAIS' ? 'Base histórica SICONV' : 'Gestão de Parcerias'}</p></td><td className="max-w-md p-2"><p className="font-medium text-gray-900">{record.title ?? record.external_id}</p><p className="text-xs text-gray-500">{record.proponent_name ?? '—'}</p></td><td className="p-2">{record.official_status ?? '—'}</td><td className="p-2">{formatMoney(record.global_amount)}</td><td className="p-2">{record.project ? <span className="flex items-center gap-1 text-emerald-700"><CheckCircle2 className="h-4 w-4" /> {record.project.name}</span> : 'Não importado'}</td></tr>)}</tbody></table></div>
           )}
         </section>
 

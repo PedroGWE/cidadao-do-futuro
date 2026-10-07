@@ -7,6 +7,8 @@ import { OfficialRecord, TransferegovClient } from './transferegov.client'
 
 const SOURCE = 'TRANSFEREGOV_PUBLIC_API'
 const MODULE = 'GESTAO_PARCERIAS'
+const LEGACY_SOURCE = 'TRANSFEREGOV_PUBLIC_CSV'
+const LEGACY_MODULE = 'DISCRICIONARIAS_LEGAIS'
 const TRACKED_FIELDS = ['official_status', 'global_amount', 'signed_at', 'valid_until'] as const
 
 export function normalizeCnpj(value: string): string {
@@ -36,13 +38,18 @@ function asString(value: unknown): string | null {
 function asDate(value: unknown): Date | null {
   const text = asString(value)
   if (!text) return null
-  const date = new Date(text)
+  const brazilianDate = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text)
+  const date = brazilianDate
+    ? new Date(Date.UTC(Number(brazilianDate[3]), Number(brazilianDate[2]) - 1, Number(brazilianDate[1])))
+    : new Date(text)
   return Number.isNaN(date.getTime()) ? null : date
 }
 
 function asDecimal(value: unknown): Prisma.Decimal | null {
   if (value === null || value === undefined || value === '') return null
-  try { return new Prisma.Decimal(String(value)) } catch { return null }
+  const text = String(value).trim()
+  const normalized = text.includes(',') ? text.replace(/\./g, '').replace(',', '.') : text
+  try { return new Prisma.Decimal(normalized) } catch { return null }
 }
 
 function json(value: unknown): Prisma.InputJsonValue {
@@ -90,11 +97,7 @@ export class TransferegovService implements OnModuleInit, OnModuleDestroy {
   }
 
   async discover(tenantId: string, userId: string) {
-    const run = await this.startRun(tenantId, 'DISCOVERY')
-    await this.execute(run.id, tenantId, userId)
-    const finished = await this.prisma.transferegovSyncRun.findFirst({ where: { id: run.id, tenant_id: tenantId } })
-    if (finished?.status === 'FAILED') throw new BadRequestException(finished.error_message)
-    return { run: finished, records: await this.listRecords(tenantId) }
+    return this.enqueue(tenantId, 'DISCOVERY', userId)
   }
 
   async enqueue(tenantId: string, trigger: string, userId?: string) {
@@ -193,10 +196,19 @@ export class TransferegovService implements OnModuleInit, OnModuleDestroy {
         if (!id) { rejected += 1; continue }
         partnerships.push(...await this.client.partnershipsByProposal(id))
       }
-      for (const [type, records] of [['PROPOSTA', proposals], ['INSTRUMENTO', partnerships]] as const) {
+      const configuredCnpjs = await this.prisma.transferegovIntegration.findMany({ select: { cnpj: true } })
+      const legacy = (await this.client.legacyRecordsByCnpjs(configuredCnpjs.map(({ cnpj }) => cnpj))).get(integration.cnpj)
+      const sources: Array<{ type: TransferegovEntityType; records: OfficialRecord[]; source: string; module: string }> = [
+        { type: 'PROPOSTA', records: proposals, source: SOURCE, module: MODULE },
+        { type: 'INSTRUMENTO', records: partnerships, source: SOURCE, module: MODULE },
+        { type: 'PROPOSTA', records: legacy?.proposals ?? [], source: LEGACY_SOURCE, module: LEGACY_MODULE },
+        { type: 'INSTRUMENTO', records: legacy?.partnerships ?? [], source: LEGACY_SOURCE, module: LEGACY_MODULE },
+      ]
+      for (const { type, records, source, module } of sources) {
         for (const raw of records) {
           consulted += 1
-          const outcome = await this.upsertOfficial(tenantId, type, raw, referenceDate, userId)
+          const sourceReferenceDate = source === LEGACY_SOURCE ? null : referenceDate
+          const outcome = await this.upsertOfficial(tenantId, type, raw, sourceReferenceDate, userId, source, module)
           if (outcome === 'created') created += 1
           else if (outcome === 'updated') updated += 1
           else if (outcome === 'ignored') ignored += 1
@@ -217,14 +229,14 @@ export class TransferegovService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async upsertOfficial(tenantId: string, type: TransferegovEntityType, raw: OfficialRecord, referenceDate: Date | null, userId?: string) {
+  private async upsertOfficial(tenantId: string, type: TransferegovEntityType, raw: OfficialRecord, referenceDate: Date | null, userId?: string, source = SOURCE, sourceModule = MODULE) {
     const externalId = asString(type === 'PROPOSTA' ? raw.id_proposta : raw.id_parceria)
     if (!externalId) return 'rejected' as const
     const proposalId = asString(raw.id_proposta) ?? (type === 'PROPOSTA' ? externalId : null)
     const mapped = {
       proposal_external_id: proposalId,
       program_external_id: asString(raw.id_programa),
-      proposal_number: null,
+      proposal_number: asString(raw.nr_proposta),
       proposal_year: raw.ano_proposta == null ? null : Number(raw.ano_proposta),
       instrument_number: type === 'INSTRUMENTO' ? asString(raw.cd_parceria) : null,
       instrument_type: type === 'INSTRUMENTO' ? asString(raw.tp_origem) : null,
@@ -234,21 +246,21 @@ export class TransferegovService implements OnModuleInit, OnModuleDestroy {
       grantor_name: asString(raw.nm_unidade_gestora),
       program_name: null,
       official_status: asString(type === 'PROPOSTA' ? raw.situacao_proposta : raw.in_situacao_parceria),
-      global_amount: type === 'PROPOSTA' ? asDecimal(raw.nr_vlr_total) : null,
+      global_amount: asDecimal(raw.nr_vlr_total),
       signed_at: type === 'INSTRUMENTO' ? asDate(raw.dh_assinatura) : null,
-      valid_from: null,
-      valid_until: null,
+      valid_from: asDate(raw.dh_inicio_vigencia),
+      valid_until: asDate(raw.dh_fim_vigencia),
       official_url: null,
     }
     const hash = createHash('sha256').update(JSON.stringify(raw)).digest('hex')
-    const where = { tenant_id_source_source_module_entity_type_external_id: { tenant_id: tenantId, source: SOURCE, source_module: MODULE, entity_type: type, external_id: externalId } }
+    const where = { tenant_id_source_source_module_entity_type_external_id: { tenant_id: tenantId, source, source_module: sourceModule, entity_type: type, external_id: externalId } }
     const existing = await this.prisma.transferegovRecord.findUnique({ where })
     if (existing?.content_hash === hash) {
       await this.prisma.transferegovRecord.update({ where: { id: existing.id }, data: { collected_at: new Date(), last_success_at: new Date(), source_reference_at: referenceDate } })
       return 'ignored' as const
     }
     if (!existing) {
-      await this.prisma.transferegovRecord.create({ data: { tenant_id: tenantId, source: SOURCE, source_module: MODULE, entity_type: type, external_id: externalId, ...mapped, source_reference_at: referenceDate, content_hash: hash, raw_data: json(raw) } })
+      await this.prisma.transferegovRecord.create({ data: { tenant_id: tenantId, source, source_module: sourceModule, entity_type: type, external_id: externalId, ...mapped, source_reference_at: referenceDate, content_hash: hash, raw_data: json(raw) } })
       await this.notify(tenantId, userId, 'TRANSFEREGOV_NEW_RECORD', 'Novo registro encontrado no Transferegov', `${type === 'PROPOSTA' ? 'Proposta' : 'Instrumento'} ${externalId} localizado para o CNPJ configurado.`, externalId, referenceDate)
       return 'created' as const
     }
