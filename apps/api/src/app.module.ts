@@ -17,6 +17,7 @@ import { ConectaModule } from './modules/conecta/conecta.module'
 import { ReportsModule } from './modules/reports/reports.module'
 import { PartnershipsModule } from './modules/partnerships/partnerships.module'
 import { AccountabilityModule } from './modules/accountability/accountability.module'
+import { TransferegovModule } from './modules/transferegov/transferegov.module'
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard'
 import { RolesGuard } from './common/guards/roles.guard'
 
@@ -38,6 +39,7 @@ import { RolesGuard } from './common/guards/roles.guard'
     ReportsModule,
     PartnershipsModule,
     AccountabilityModule,
+    TransferegovModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

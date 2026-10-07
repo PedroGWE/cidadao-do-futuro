@@ -51,6 +51,7 @@ enum ProjectType {
   ASSISTENCIA_SOCIAL
   SAUDE
   AMBIENTAL
+  OUTROS
 }
 
 enum ProjectStatus {
@@ -513,6 +514,26 @@ enum ConectaEntregaStatus {
   AVALIADA
 }
 
+enum TransferegovIntegrationStatus {
+  NOT_CONFIGURED
+  READY
+  SYNCING
+  ERROR
+}
+
+enum TransferegovEntityType {
+  PROPOSTA
+  INSTRUMENTO
+}
+
+enum TransferegovSyncStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+}
+
 // ============================================================
 // TENANT & IDENTITY
 // ============================================================
@@ -582,6 +603,10 @@ model Tenant {
   entregas_atividades          EntregaAtividade[]
   presencas                    Presenca[]
   notas_desenvolvimento        NotaDesenvolvimento[]
+  transferegov_integration     TransferegovIntegration?
+  transferegov_records         TransferegovRecord[]
+  transferegov_sync_runs       TransferegovSyncRun[]
+  transferegov_changes         TransferegovChange[]
 
   @@index([slug])
   @@index([cnpj])
@@ -838,6 +863,7 @@ model Project {
   beneficiario_vinculos  BeneficiarioProjeto[]
   professor_vinculos     ProfessorProjeto[]
   turmas                 Turma[]
+  transferegov_records   TransferegovRecord[]
 
   @@unique([tenant_id, code])
   @@index([tenant_id])
@@ -846,6 +872,121 @@ model Project {
   @@index([manager_id])
   @@index([deleted_at])
   @@map("projects")
+}
+
+// ============================================================
+// TRANSFEREGOV.BR (dados públicos; dados oficiais separados dos operacionais)
+// ============================================================
+
+model TransferegovIntegration {
+  id                       String                         @id @default(cuid())
+  tenant_id                String                         @unique
+  cnpj                     String                         @db.VarChar(14)
+  automatic_sync           Boolean                        @default(false)
+  sync_interval_hours      Int                            @default(24)
+  status                   TransferegovIntegrationStatus @default(READY)
+  last_attempt_at          DateTime?
+  last_success_at          DateTime?
+  next_sync_at             DateTime?
+  last_error               String?
+  created_at               DateTime                       @default(now())
+  updated_at               DateTime                       @updatedAt
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  runs   TransferegovSyncRun[]
+
+  @@index([automatic_sync, next_sync_at])
+  @@map("transferegov_integrations")
+}
+
+model TransferegovRecord {
+  id                   String                  @id @default(cuid())
+  tenant_id            String
+  project_id           String?
+  source               String                  @default("TRANSFEREGOV_PUBLIC_API")
+  source_module        String                  @default("GESTAO_PARCERIAS")
+  entity_type          TransferegovEntityType
+  external_id          String
+  proposal_external_id String?
+  program_external_id  String?
+  proposal_number      String?
+  proposal_year        Int?
+  instrument_number    String?
+  instrument_type      String?
+  title                String?
+  proponent_name       String?
+  proponent_cnpj       String?                 @db.VarChar(14)
+  grantor_name         String?
+  program_name         String?
+  official_status      String?
+  transfer_amount      Decimal?                @db.Decimal(18, 2)
+  counterpart_amount   Decimal?                @db.Decimal(18, 2)
+  global_amount        Decimal?                @db.Decimal(18, 2)
+  signed_at            DateTime?
+  valid_from            DateTime?
+  valid_until           DateTime?
+  official_url          String?
+  source_reference_at  DateTime?
+  collected_at         DateTime                @default(now())
+  last_success_at      DateTime                @default(now())
+  content_hash         String
+  raw_data             Json
+  imported_at          DateTime?
+  created_at           DateTime                @default(now())
+  updated_at           DateTime                @updatedAt
+
+  tenant  Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [project_id], references: [id], onDelete: SetNull)
+  changes TransferegovChange[]
+
+  @@unique([tenant_id, source, source_module, entity_type, external_id])
+  @@index([tenant_id, entity_type, official_status])
+  @@index([tenant_id, proposal_external_id])
+  @@index([project_id])
+  @@map("transferegov_records")
+}
+
+model TransferegovSyncRun {
+  id               String                  @id @default(cuid())
+  tenant_id        String
+  integration_id   String
+  trigger           String
+  status            TransferegovSyncStatus @default(PENDING)
+  started_at        DateTime?
+  completed_at      DateTime?
+  source_reference_at DateTime?
+  consulted         Int                     @default(0)
+  created_count     Int                     @default(0)
+  updated_count     Int                     @default(0)
+  ignored_count     Int                     @default(0)
+  rejected_count    Int                     @default(0)
+  error_message     String?
+  cursor            Json?
+  created_at        DateTime                @default(now())
+
+  tenant      Tenant                   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  integration TransferegovIntegration @relation(fields: [integration_id], references: [id], onDelete: Cascade)
+
+  @@index([tenant_id, created_at])
+  @@index([integration_id, status])
+  @@map("transferegov_sync_runs")
+}
+
+model TransferegovChange {
+  id          String   @id @default(cuid())
+  tenant_id   String
+  record_id   String
+  field_name  String
+  old_value   Json?
+  new_value   Json?
+  detected_at DateTime @default(now())
+
+  tenant Tenant              @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  record TransferegovRecord @relation(fields: [record_id], references: [id], onDelete: Cascade)
+
+  @@index([tenant_id, detected_at])
+  @@index([record_id])
+  @@map("transferegov_changes")
 }
 
 model ProjectMember {
