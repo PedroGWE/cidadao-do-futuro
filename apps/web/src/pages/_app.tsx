@@ -28,19 +28,17 @@ export default function App({ Component, pageProps }: AppProps) {
           localStorage.removeItem('auth_user')
         })
     }
-  }, [])
+  }, [setAuth, user])
 
   return (
     <>
       <Head>
-        <title>Semevo | Gestão que faz crescer</title>
-        <link rel="icon" href="/favicon.ico" sizes="48x48" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <title>Amparo GOV | Gestão para organizações sociais</title>
+        <meta name="description" content="Gestão clara e segura para organizações sociais." />
+        <link rel="icon" type="image/png" href="/amparo/icone-app.png" />
+        <link rel="apple-touch-icon" href="/amparo/icone-app.png" />
         <link rel="manifest" href="/site.webmanifest" />
-        <meta name="theme-color" content="#185B4C" />
-        <link rel="icon" href="/brand/favicon.svg" type="image/svg+xml" />
+        <meta name="theme-color" content="#2364B0" />
       </Head>
       <Component {...pageProps} />
     </>

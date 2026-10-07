@@ -43,9 +43,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen bg-cream">
-      <aside className="w-64 flex-shrink-0 bg-brand-600 text-white flex flex-col shadow-xl">
-        <div className="h-20 flex items-center px-5 border-b border-white/10">
-          <Image src="/brand/Semevo_Logo_Branca.png" alt="Semevo" width={200} height={76} className="h-12 w-auto object-contain" priority />
+      <aside className="w-64 flex-shrink-0 bg-brand-700 text-white flex flex-col shadow-xl">
+        <div className="h-24 flex items-center px-5 border-b border-white/15">
+          <Image src="/amparo/logo-fundo-escuro.png" alt="Amparo GOV" width={2172} height={724} className="h-[72px] w-full object-cover object-center" priority />
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -57,8 +57,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 key={item.href}
                 href={href}
                 className={clsx(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  active ? 'bg-white/15 text-white shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white',
+                  'flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-star-500',
+                  active ? 'bg-white text-brand-700 shadow-sm' : 'text-white/85 hover:bg-white/10 hover:text-white',
                 )}
               >
                 <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -71,7 +71,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         <div className="border-t border-white/10 p-3">
           <div className="flex items-center gap-3 px-3 py-2 mb-1">
-            <div className="h-8 w-8 rounded-full bg-star-500 flex items-center justify-center text-brand-900 font-semibold text-sm flex-shrink-0">
+            <div className="h-9 w-9 rounded-full bg-star-500 flex items-center justify-center text-brand-900 font-bold text-sm flex-shrink-0">
               {user?.name?.[0]?.toUpperCase() ?? '?'}
             </div>
             <div className="flex-1 min-w-0">
@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
           <button
             onClick={logout}
-            className="flex w-full items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+            className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-colors"
           >
             <LogOut className="h-4 w-4" />
             Sair
@@ -90,8 +90,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <main className="flex-1 overflow-y-auto">
-        <header className="h-20 bg-white/90 border-b border-[#D7E1DA] flex items-center px-6 backdrop-blur">
-          <h1 className="font-display text-xl font-semibold text-brand-800 capitalize">
+        <header className="h-20 bg-white/95 border-b border-[#D5DEEA] flex items-center px-6 backdrop-blur">
+          <h1 className="font-display text-xl font-bold text-brand-900 capitalize">
             {navItems.find((n) =>
               n.href === '' ? router.pathname === '/[tenant]' : router.pathname === `/[tenant]/${n.href}`
             )?.label ?? 'Dashboard'}

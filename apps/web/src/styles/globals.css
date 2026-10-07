@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face { font-family: 'Manrope'; src: url('/fonts/Manrope-variable.ttf') format('truetype'); font-weight: 200 800; font-display: swap; }
-@font-face { font-family: 'Fraunces'; src: url('/fonts/Fraunces-variable.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('/fonts/Inter-Variable.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'Manrope'; src: url('/fonts/Manrope-Variable.ttf') format('truetype'); font-weight: 200 800; font-display: swap; }
 
 @layer base {
   html {
@@ -12,14 +12,14 @@
   body {
     @apply bg-cream font-sans text-graphite;
   }
-  h1, h2 {
-    @apply font-display;
+  h1, h2, h3 {
+    @apply font-display text-brand-900;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg px-[18px] py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-900 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
     @apply btn bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800;
@@ -28,15 +28,15 @@
     @apply btn bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800;
   }
   .btn-ghost {
-    @apply btn text-gray-700 hover:bg-gray-100;
+    @apply btn text-[#516176] hover:bg-brand-50;
   }
   .input {
-    @apply block w-full rounded-xl border border-[#D7E1DA] bg-white px-3 py-2 text-sm placeholder-gray-400 shadow-sm transition-colors focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:bg-gray-50 disabled:text-gray-500;
+    @apply block min-h-11 w-full rounded-lg border border-[#7A889C] bg-white px-3 py-2 text-sm text-graphite placeholder-[#516176] shadow-sm transition-colors focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:bg-gray-50 disabled:text-gray-500;
   }
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply mb-2 block text-sm font-semibold text-brand-900;
   }
   .card {
-    @apply rounded-2xl border border-[#D7E1DA] bg-white p-6 shadow-sm;
+    @apply rounded-xl border border-[#D5DEEA] bg-white p-6 shadow-[0_4px_16px_rgb(20_47_84/0.06)];
   }
 }

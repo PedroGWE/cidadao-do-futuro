@@ -5,29 +5,29 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          50: '#f1f7f4', 100: '#e5efe8', 200: '#c7ddd2', 300: '#9fc4b3',
-          400: '#66a18a', 500: '#357c68', 600: '#185B4C', 700: '#124739',
-          800: '#103b31', 900: '#0c3028',
+          50: '#ECF2FA', 100: '#DCE8F6', 200: '#B9D1EC', 300: '#8CB1DB',
+          400: '#5B8DC7', 500: '#3772B8', 600: '#2364B0', 700: '#1B4F8C',
+          800: '#173F70', 900: '#142F54',
         },
         // Verde crescimento — apoio, progresso, conclusão
         growth: {
-          50: '#f0f9ec',
-          100: '#dcf0d3',
-          500: '#66a18a', 600: '#357c68', 700: '#185B4C',
+          50: '#EAF6E9',
+          100: '#D5EDD3',
+          500: '#46AF43', 600: '#237A32', 700: '#1D6429',
         },
         // Laranja conquista — destaques pontuais (botões de ação, badges)
         star: {
-          50: '#fef4e6',
-          100: '#fde4c2',
-          500: '#E8B74C', 600: '#d6a536', 700: '#b98722',
+          50: '#FFF9E6',
+          100: '#FFF4CC',
+          500: '#FABE0C', 600: '#F0B40A', 700: '#7A4E00',
         },
         // Grafite no lugar do preto puro
-        graphite: '#233B33',
-        cream: '#F6F3EA',
+        graphite: '#24364B',
+        cream: '#F5F8FC',
       },
       fontFamily: {
-        sans: ['Manrope', 'system-ui', 'sans-serif'],
-        display: ['Fraunces', 'Georgia', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Manrope', 'system-ui', 'sans-serif'],
       },
     },
   },

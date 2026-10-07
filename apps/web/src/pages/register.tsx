@@ -62,15 +62,16 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-gray-100 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top_left,_#ECF2FA,_#F5F8FC_55%)] px-4 py-10">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Image src="/brand/Semevo_Logo_Principal.png" alt="Semevo - Gestão que faz crescer" width={640} height={260} priority className="mx-auto" style={{ height: '7rem', width: 'auto' }} />
-          <p className="mt-2 text-sm font-medium tracking-wide text-brand-700">Gestão que faz crescer.</p>
+          <Image src="/amparo/logo-principal.png" alt="Amparo GOV" width={2180} height={721} priority className="mx-auto h-auto w-[280px]" />
+          <p className="mt-3 text-sm font-semibold tracking-wide text-brand-700">Gestão que cuida.</p>
         </div>
 
         <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Cadastrar organização</h2>
+          <h1 className="mb-2 text-2xl font-bold text-brand-900">Cadastrar organização</h1>
+          <p className="mb-6 text-sm text-[#516176]">Comece organizando sua equipe, seus projetos e seus resultados.</p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
