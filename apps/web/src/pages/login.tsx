@@ -38,13 +38,13 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top_left,_#ECF2FA,_#F5F8FC_55%)] px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Image src="/amparo/logo-principal.png" alt="Amparo GOV" width={2180} height={721} priority className="mx-auto h-auto w-[280px]" />
-          <p className="mt-3 text-sm font-semibold tracking-wide text-brand-700">Gestão que cuida.</p>
+      <div className="card w-full max-w-md overflow-hidden p-0 shadow-[0_18px_50px_rgb(20_47_84/0.12)]">
+        <div className="border-b border-[#D5DEEA] bg-white px-8 pb-6 pt-7 text-center">
+          <Image src="/amparo/logo-principal.png" alt="Amparo GOV" width={2180} height={721} priority className="mx-auto h-auto w-[250px]" />
+          <p className="mt-1 text-sm font-semibold tracking-wide text-brand-700">Gestão que cuida.</p>
         </div>
 
-        <div className="card">
+        <div className="px-6 py-7 sm:px-8">
           <h1 className="mb-2 text-2xl font-bold text-brand-900">Entrar na plataforma</h1>
           <p className="mb-6 text-sm text-[#516176]">Acesse a gestão da sua organização com segurança.</p>
 
