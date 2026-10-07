@@ -15,22 +15,25 @@ git pull --ff-only origin main
 echo "=== 1. Instalando dependências ==="
 pnpm install --frozen-lockfile
 
-echo "=== 2. Build da API ==="
+echo "=== 2. Gerando Prisma Client ==="
+pnpm --filter @cidadao/api db:generate
+
+echo "=== 3. Build da API ==="
 cd apps/api
 pnpm build
 cd "$REPO_DIR"
 
-echo "=== 3. Migrations Prisma ==="
+echo "=== 4. Migrations Prisma ==="
 cd apps/api
 npx prisma migrate deploy
 cd "$REPO_DIR"
 
-echo "=== 4. Build do Web ==="
+echo "=== 5. Build do Web ==="
 cd apps/web
 pnpm build
 cd "$REPO_DIR"
 
-echo "=== 5. Configurando Nginx ==="
+echo "=== 6. Configurando Nginx ==="
 if systemctl is-active --quiet nginx; then
   sudo cp infra/nginx/projeto.gtmcorepro.com.conf "$NGINX_CONF"
   sudo ln -sf "$NGINX_CONF" "$NGINX_ENABLED"
@@ -39,7 +42,7 @@ else
   echo "Nginx do host inativo; mantendo o proxy reverso externo/containerizado."
 fi
 
-echo "=== 6. Reiniciando processos PM2 ==="
+echo "=== 7. Reiniciando processos PM2 ==="
 pm2 startOrRestart infra/pm2/ecosystem.config.js --only cidadao-api --env production --update-env
 pm2 delete cidadao-web 2>/dev/null || true
 pm2 start infra/pm2/ecosystem.config.js --only cidadao-web --env production
