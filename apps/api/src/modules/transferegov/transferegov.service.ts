@@ -11,6 +11,10 @@ const LEGACY_SOURCE = 'TRANSFEREGOV_PUBLIC_CSV'
 const LEGACY_MODULE = 'DISCRICIONARIAS_LEGAIS'
 const TRACKED_FIELDS = ['official_status', 'global_amount', 'signed_at', 'valid_until'] as const
 
+function projectTitleKey(title: string) {
+  return title.normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR')
+}
+
 export function normalizeCnpj(value: string): string {
   return value.replace(/\D/g, '')
 }
@@ -130,45 +134,42 @@ export class TransferegovService implements OnModuleInit, OnModuleDestroy {
   async importRecords(tenantId: string, userId: string, dto: ImportTransferegovDto) {
     const records = await this.prisma.transferegovRecord.findMany({ where: { tenant_id: tenantId, id: { in: dto.record_ids } } })
     if (records.length !== new Set(dto.record_ids).size) throw new NotFoundException('Um ou mais registros não pertencem a esta organização.')
-    let targetProjectId = dto.project_id
-    if (targetProjectId) {
-      const exists = await this.prisma.project.count({ where: { id: targetProjectId, tenant_id: tenantId, deleted_at: null } })
+    const explicitProjectId = dto.project_id
+    if (explicitProjectId) {
+      const exists = await this.prisma.project.count({ where: { id: explicitProjectId, tenant_id: tenantId, deleted_at: null } })
       if (!exists) throw new NotFoundException('Projeto de destino não encontrado nesta organização.')
     }
+    const existingProjects = await this.prisma.project.findMany({ where: { tenant_id: tenantId, deleted_at: null }, select: { id: true, name: true, total_budget: true } })
+    const projectsByTitle = new Map(existingProjects.map((project) => [projectTitleKey(project.name), project]))
     const result: Array<{ record_id: string; project_id: string }> = []
     for (const record of records.sort((a, b) => a.entity_type === 'PROPOSTA' ? -1 : b.entity_type === 'PROPOSTA' ? 1 : 0)) {
-      let projectId = targetProjectId ?? record.project_id
-      if (!projectId && record.proposal_external_id) {
-        projectId = (await this.prisma.transferegovRecord.findFirst({
-          where: { tenant_id: tenantId, proposal_external_id: record.proposal_external_id, project_id: { not: null } },
-          select: { project_id: true },
-        }))?.project_id ?? null
-      }
+      const title = record.title ?? `Registro Transferegov ${record.external_id}`
+      const titleKey = projectTitleKey(title)
+      let project = explicitProjectId ? null : projectsByTitle.get(titleKey) ?? null
+      let projectId = explicitProjectId ?? project?.id ?? null
       if (!projectId) {
         const project = await this.prisma.project.create({
           data: {
             tenant_id: tenantId,
             created_by: userId,
-            name: record.title ?? `Registro Transferegov ${record.external_id}`,
+            name: title,
             description: 'Projeto vinculado a dados públicos oficiais do Transferegov. Campos operacionais internos permanecem independentes.',
             type: 'OUTROS',
             status: 'RASCUNHO',
+            total_budget: record.global_amount,
             code: `TG-${record.entity_type === 'PROPOSTA' ? 'P' : 'I'}-${record.external_id}`,
             tags: ['Transferegov'],
             members: { create: { user_id: userId, role: 'GESTOR' } },
           },
         })
         projectId = project.id
+        projectsByTitle.set(titleKey, project)
+      } else if (!explicitProjectId && project && !project.total_budget && record.global_amount) {
+        await this.prisma.project.update({ where: { id: projectId }, data: { total_budget: record.global_amount } })
+        project.total_budget = record.global_amount
       }
       await this.prisma.transferegovRecord.update({ where: { id: record.id }, data: { project_id: projectId, imported_at: new Date() } })
-      if (record.proposal_external_id) {
-        await this.prisma.transferegovRecord.updateMany({
-          where: { tenant_id: tenantId, proposal_external_id: record.proposal_external_id, project_id: null },
-          data: { project_id: projectId, imported_at: new Date() },
-        })
-      }
       result.push({ record_id: record.id, project_id: projectId })
-      targetProjectId ??= projectId
     }
     return result
   }
