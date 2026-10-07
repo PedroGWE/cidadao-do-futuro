@@ -6,7 +6,7 @@ module.exports = {
       colors: {
         brand: {
           50: '#ECF2FA', 100: '#DCE8F6', 200: '#B9D1EC', 300: '#8CB1DB',
-          400: '#5B8DC7', 500: '#3772B8', 600: '#2364B0', 700: '#1B4F8C',
+          400: '#5B8DC7', 500: '#3772B8', 600: '#2066B2', 700: '#1B4F8C',
           800: '#173F70', 900: '#142F54',
         },
         // Verde crescimento — apoio, progresso, conclusão

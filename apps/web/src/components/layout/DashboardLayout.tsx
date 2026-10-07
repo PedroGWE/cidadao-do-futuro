@@ -43,9 +43,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen bg-cream">
-      <aside className="w-64 flex-shrink-0 bg-brand-700 text-white flex flex-col shadow-xl">
-        <div className="h-24 flex items-center px-5 border-b border-white/15">
-          <Image src="/amparo/logo-fundo-escuro.png" alt="Amparo GOV" width={2172} height={724} className="h-[72px] w-full object-cover object-center" priority />
+      <aside className="w-64 flex-shrink-0 bg-brand-600 text-white flex flex-col shadow-xl">
+        <div className="flex h-24 items-center border-b border-white/15 bg-brand-600 px-5">
+          <Image
+            src="/amparo/logo-fundo-escuro.png"
+            alt="Amparo GOV"
+            width={2172}
+            height={724}
+            className="h-auto w-full object-contain"
+            priority
+          />
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
