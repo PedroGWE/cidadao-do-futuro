@@ -36,7 +36,7 @@ pnpm --filter @cidadao/api db:seed
 pnpm dev
 ```
 
-`.env.local` é ignorado pelo Git. O seed `demo` nunca deve ser usado em produção.
+`.env.local` é ignorado pelo Git. O seed padrão provisiona somente cadastros estruturais e não cria organizações, usuários ou dados fictícios.
 
 ## Banco existente sem histórico Prisma
 

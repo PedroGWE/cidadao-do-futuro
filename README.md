@@ -64,7 +64,7 @@ cp infra/docker/.env.example infra/docker/.env
 # 4. Subir toda a aplicação
 docker compose --env-file infra/docker/.env -f infra/docker/docker-compose.yml up -d --build
 
-# 5. Em instalação nativa, aplicar migrations e seed de desenvolvimento
+# 5. Em instalação nativa, aplicar migrations e cadastros padrão
 pnpm --filter @cidadao/api exec prisma migrate deploy
 pnpm --filter @cidadao/api db:seed
 

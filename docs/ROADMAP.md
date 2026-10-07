@@ -21,7 +21,6 @@ Este documento registra as melhorias planejadas para o Semevo, organizadas por p
 
 ### 3. Migrações do Banco de Dados
 - [ ] Criar e versionar todas as migrations Prisma (atualmente sem arquivos de migration)
-- [ ] Criar seed completo com dados de demonstração
 - [ ] Script de reset seguro para staging
 
 ### 4. Tratamento de Erros Robusto
