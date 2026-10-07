@@ -3,6 +3,7 @@ import { GetServerSideProps } from 'next'
 import useSWR, { useSWRConfig } from 'swr'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import axios from 'axios'
 import {
   PlusCircle, Search, GraduationCap, ChevronLeft, ChevronRight,
   Trash2, X, Edit2, History, Lock, Phone, Mail, BriefcaseBusiness, Clock3,
@@ -50,6 +51,7 @@ function ProfessorForm({
 }) {
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const [disciplinaInput, setDisciplinaInput] = useState('')
 
   const {
@@ -84,8 +86,13 @@ function ProfessorForm({
 
   async function submit(data: CreateProfessorInput) {
     setSaving(true)
+    setSubmitError('')
     try {
       await onSubmit(data)
+    } catch (error) {
+      const responseMessage = axios.isAxiosError(error) ? error.response?.data?.message : undefined
+      const message = Array.isArray(responseMessage) ? responseMessage.join('. ') : responseMessage
+      setSubmitError(message || 'Não foi possível salvar o professor. Confira os dados e tente novamente.')
     } finally {
       setSaving(false)
     }
@@ -110,6 +117,12 @@ function ProfessorForm({
           </button>
         ))}
       </div>
+
+      {submitError && (
+        <div role="alert" aria-live="assertive" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {submitError}
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto space-y-4">
         {/* Step 0 — Dados Pessoais */}

@@ -18,6 +18,7 @@ import {
   Handshake,
   ClipboardCheck,
   Landmark,
+  Plug,
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useAuth } from '@/hooks/useAuth'
@@ -31,6 +32,7 @@ const navItems = [
   { label: 'Financeiro', icon: DollarSign, href: 'financeiro' },
   { label: 'Parcerias', icon: Handshake, href: 'parcerias' },
   { label: 'Transferegov', icon: Landmark, href: 'transferegov' },
+  { label: 'Dados públicos', icon: Plug, href: 'integracoes' },
   { label: 'Prestação de contas', icon: ClipboardCheck, href: 'prestacao-contas' },
   { label: 'Dados Básicos', icon: Building2, href: 'institucional/dados-basicos' },
   { label: 'Documentos', icon: FolderArchive, href: 'institucional/documentos' },

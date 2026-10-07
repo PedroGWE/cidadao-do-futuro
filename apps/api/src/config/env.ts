@@ -10,6 +10,7 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   REDIS_URL: z.string().optional(),
   CORS_ORIGINS: z.string().default('http://localhost:3000'),
+  PORTAL_TRANSPARENCIA_TOKEN: z.string().optional(),
 })
 
 export type Env = z.infer<typeof envSchema>

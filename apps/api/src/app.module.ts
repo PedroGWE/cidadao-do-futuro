@@ -20,6 +20,7 @@ import { AccountabilityModule } from './modules/accountability/accountability.mo
 import { TransferegovModule } from './modules/transferegov/transferegov.module'
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard'
 import { RolesGuard } from './common/guards/roles.guard'
+import { PublicDataModule } from './modules/public-data/public-data.module'
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { RolesGuard } from './common/guards/roles.guard'
     PartnershipsModule,
     AccountabilityModule,
     TransferegovModule,
+    PublicDataModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
