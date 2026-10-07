@@ -87,4 +87,4 @@ jobs:
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
             "$SSH_USER@$SSH_HOST" \
-            'bash /var/www/cidadao-futuro/infra/scripts/deploy.sh'
+            'cd /var/www/cidadao-futuro && git fetch origin main && git pull --ff-only origin main && exec bash infra/scripts/deploy.sh'
