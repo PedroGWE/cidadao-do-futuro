@@ -13,6 +13,8 @@ import type { CreatePhaseDto } from './dto/create-phase.dto'
 import type { CreateTaskDto } from './dto/create-task.dto'
 import type { UpdateTaskDto } from './dto/update-task.dto'
 import type { AddMemberDto } from './dto/add-member.dto'
+import type { CreateProjectIndicatorDto } from './dto/create-project-indicator.dto'
+import type { UpdateProjectIndicatorDto } from './dto/update-project-indicator.dto'
 
 const PROJECT_SELECT = {
   id: true,
@@ -36,6 +38,39 @@ const PROJECT_SELECT = {
 export class ProjectsService {
   constructor(private prisma: PrismaService) {}
 
+  async overview(tenantId: string) {
+    const projectWhere: Prisma.ProjectWhereInput = { tenant_id: tenantId, deleted_at: null }
+    const taskWhere: Prisma.ProjectTaskWhereInput = { project: { tenant_id: tenantId, deleted_at: null } }
+    const [total, executing, completed, planning, budget, taskGroups, overdueTasks] = await Promise.all([
+      this.prisma.project.count({ where: projectWhere }),
+      this.prisma.project.count({ where: { ...projectWhere, status: 'EM_EXECUCAO' } }),
+      this.prisma.project.count({ where: { ...projectWhere, status: 'CONCLUIDO' } }),
+      this.prisma.project.count({ where: { ...projectWhere, status: { in: ['RASCUNHO', 'CAPTACAO', 'APROVADO'] } } }),
+      this.prisma.project.aggregate({ where: projectWhere, _sum: { total_budget: true, approved_budget: true } }),
+      this.prisma.projectTask.groupBy({ by: ['status'], where: taskWhere, _count: { _all: true } }),
+      this.prisma.projectTask.count({
+        where: {
+          ...taskWhere,
+          due_date: { lt: new Date() },
+          status: { notIn: ['CONCLUIDA', 'CANCELADA'] },
+        },
+      }),
+    ])
+    const taskCounts = Object.fromEntries(taskGroups.map((group) => [group.status, group._count._all]))
+    const totalTasks = Object.values(taskCounts).reduce((sum, count) => sum + count, 0)
+    const completedTasks = taskCounts.CONCLUIDA ?? 0
+    return {
+      projects: { total, executing, completed, planning },
+      budget: { planned: Number(budget._sum.total_budget ?? 0), approved: Number(budget._sum.approved_budget ?? 0) },
+      tasks: {
+        total: totalTasks,
+        completed: completedTasks,
+        open: totalTasks - completedTasks - (taskCounts.CANCELADA ?? 0),
+        overdue: overdueTasks,
+      },
+    }
+  }
+
   async findAll(tenantId: string, q: QueryProjectsDto) {
     const page = q.page ?? 1
     const limit = q.limit ?? 20
@@ -52,7 +87,7 @@ export class ProjectsService {
       }),
     }
 
-    const [data, total] = await Promise.all([
+    const [projects, total] = await Promise.all([
       this.prisma.project.findMany({
         where,
         select: PROJECT_SELECT,
@@ -63,6 +98,36 @@ export class ProjectsService {
       this.prisma.project.count({ where }),
     ])
 
+    const taskGroups = projects.length ? await this.prisma.projectTask.groupBy({
+      by: ['project_id', 'status'],
+      where: { project_id: { in: projects.map((project) => project.id) } },
+      _count: { _all: true },
+    }) : []
+    const taskCounts = new Map<string, { total: number; completed: number; overdue: number }>()
+    for (const group of taskGroups) {
+      const stats = taskCounts.get(group.project_id) ?? { total: 0, completed: 0, overdue: 0 }
+      if (group.status !== 'CANCELADA') stats.total += group._count._all
+      if (group.status === 'CONCLUIDA') stats.completed += group._count._all
+      taskCounts.set(group.project_id, stats)
+    }
+    const overdueByProject = projects.length ? await this.prisma.projectTask.groupBy({
+      by: ['project_id'],
+      where: {
+        project_id: { in: projects.map((project) => project.id) },
+        due_date: { lt: new Date() },
+        status: { notIn: ['CONCLUIDA', 'CANCELADA'] },
+      },
+      _count: { _all: true },
+    }) : []
+    for (const group of overdueByProject) {
+      const stats = taskCounts.get(group.project_id)
+      if (stats) stats.overdue = group._count._all
+    }
+
+    const data = projects.map((project) => ({
+      ...project,
+      task_progress: taskCounts.get(project.id) ?? { total: 0, completed: 0, overdue: 0 },
+    }))
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) }
   }
 
@@ -280,6 +345,28 @@ export class ProjectsService {
     await this.assertBelongsToTenant(projectId, tenantId)
     await this.prisma.projectMember.deleteMany({
       where: { project_id: projectId, user_id: userId },
+    })
+  }
+
+  async findIndicators(tenantId: string, projectId: string) {
+    await this.assertBelongsToTenant(projectId, tenantId)
+    return this.prisma.projectIndicator.findMany({ where: { project_id: projectId }, orderBy: { created_at: 'asc' } })
+  }
+
+  async createIndicator(tenantId: string, projectId: string, dto: CreateProjectIndicatorDto) {
+    await this.assertBelongsToTenant(projectId, tenantId)
+    return this.prisma.projectIndicator.create({
+      data: { project_id: projectId, ...dto, last_updated: dto.current_value !== undefined ? new Date() : null },
+    })
+  }
+
+  async updateIndicator(tenantId: string, projectId: string, indicatorId: string, dto: UpdateProjectIndicatorDto) {
+    await this.assertBelongsToTenant(projectId, tenantId)
+    const indicator = await this.prisma.projectIndicator.findFirst({ where: { id: indicatorId, project_id: projectId }, select: { id: true } })
+    if (!indicator) throw new NotFoundException('Indicador não encontrado neste projeto')
+    return this.prisma.projectIndicator.update({
+      where: { id: indicatorId },
+      data: { current_value: dto.current_value, ...(dto.current_value !== undefined && { last_updated: new Date() }) },
     })
   }
 

@@ -18,6 +18,8 @@ import { CreatePhaseDto } from './dto/create-phase.dto'
 import { CreateTaskDto } from './dto/create-task.dto'
 import { UpdateTaskDto } from './dto/update-task.dto'
 import { AddMemberDto } from './dto/add-member.dto'
+import { CreateProjectIndicatorDto } from './dto/create-project-indicator.dto'
+import { UpdateProjectIndicatorDto } from './dto/update-project-indicator.dto'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import { RequirePermissions } from '../../common/decorators/permissions.decorator'
 import type { JwtPayload } from '../auth/types/jwt-payload'
@@ -27,6 +29,11 @@ export class ProjectsController {
   constructor(private projects: ProjectsService) {}
 
   // ── Projects ──────────────────────────────────────────────────
+
+  @Get('overview')
+  overview(@CurrentUser('tenantId') tid: string) {
+    return this.projects.overview(tid)
+  }
 
   @Get()
   findAll(@CurrentUser('tenantId') tid: string, @Query() q: QueryProjectsDto) {
@@ -159,5 +166,24 @@ export class ProjectsController {
     @Param('userId') userId: string,
   ) {
     return this.projects.removeMember(tid, id, userId)
+  }
+
+  // ── Social impact indicators ───────────────────────────────────
+
+  @Get(':id/indicators')
+  findIndicators(@CurrentUser('tenantId') tid: string, @Param('id') id: string) {
+    return this.projects.findIndicators(tid, id)
+  }
+
+  @Post(':id/indicators')
+  @RequirePermissions('projects:update')
+  createIndicator(@CurrentUser('tenantId') tid: string, @Param('id') id: string, @Body() dto: CreateProjectIndicatorDto) {
+    return this.projects.createIndicator(tid, id, dto)
+  }
+
+  @Patch(':id/indicators/:indicatorId')
+  @RequirePermissions('projects:update')
+  updateIndicator(@CurrentUser('tenantId') tid: string, @Param('id') id: string, @Param('indicatorId') indicatorId: string, @Body() dto: UpdateProjectIndicatorDto) {
+    return this.projects.updateIndicator(tid, id, indicatorId, dto)
   }
 }
