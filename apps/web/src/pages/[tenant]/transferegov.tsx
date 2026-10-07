@@ -1,6 +1,6 @@
 import type { GetServerSideProps } from 'next'
 import { FormEvent, useEffect, useState } from 'react'
-import useSWR from 'swr'
+import useSWR, { mutate } from 'swr'
 import { CheckCircle2, CloudDownload, Database, RefreshCw, Save } from 'lucide-react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import {
@@ -70,9 +70,14 @@ export default function TransferegovPage() {
   async function importSelected() {
     setBusy('import'); setMessage(null)
     try {
-      await transferegovService.importRecords(selected)
-      setSelected([]); await records.mutate()
-      setMessage({ kind: 'success', text: 'Registros importados e vinculados aos projetos.' })
+      const imported = await transferegovService.importRecords(selected) as Array<{ project_id: string }>
+      setSelected([])
+      await Promise.all([
+        records.mutate(),
+        mutate((key) => Array.isArray(key) && key[0] === '/projects'),
+      ])
+      const projectCount = new Set(imported.map((item) => item.project_id)).size
+      setMessage({ kind: 'success', text: `${imported.length} registro(s) sincronizado(s) em ${projectCount} projeto(s). A lista de Projetos foi atualizada.` })
     } catch (error) {
       setMessage({ kind: 'error', text: apiErrorMessage(error, 'Não foi possível importar os registros.') })
     } finally { setBusy(null) }
