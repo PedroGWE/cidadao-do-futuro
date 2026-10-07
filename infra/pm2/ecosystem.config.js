@@ -9,6 +9,10 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3001,
       },
+      env_production: {
+        NODE_ENV: 'production',
+        PORT: 3001,
+      },
       instances: 1,
       autorestart: true,
       watch: false,
@@ -17,9 +21,14 @@ module.exports = {
     {
       name: 'cidadao-web',
       cwd: '/var/www/cidadao-futuro/apps/web',
-      script: 'node',
-      args: 'node_modules/next/dist/bin/next start -p 3000',
+      script: 'node_modules/next/dist/bin/next',
+      args: 'start -p 3000',
+      interpreter: 'node',
       env: {
+        NODE_ENV: 'production',
+        PORT: 3000,
+      },
+      env_production: {
         NODE_ENV: 'production',
         PORT: 3000,
       },

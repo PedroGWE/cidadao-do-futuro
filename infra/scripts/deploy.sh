@@ -40,7 +40,9 @@ else
 fi
 
 echo "=== 6. Reiniciando processos PM2 ==="
-pm2 startOrRestart infra/pm2/ecosystem.config.js --env production --update-env
+pm2 startOrRestart infra/pm2/ecosystem.config.js --only cidadao-api --env production --update-env
+pm2 delete cidadao-web 2>/dev/null || true
+pm2 start infra/pm2/ecosystem.config.js --only cidadao-web --env production
 pm2 save
 
 echo "=== 7. Verificando saúde dos serviços ==="
