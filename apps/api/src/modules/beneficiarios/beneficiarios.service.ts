@@ -12,6 +12,11 @@ import type { QueryBeneficiariosDto } from './dto/query-beneficiarios.dto'
 import type { CreateResponsavelDto } from './dto/create-responsavel.dto'
 import type { CreateVinculoDto } from './dto/create-vinculo.dto'
 
+function normalizeCpf(cpf?: string | null) {
+  const digits = cpf?.replace(/\D/g, '') ?? ''
+  return digits || null
+}
+
 const BENEFICIARIO_SELECT = {
   id: true,
   name: true,
@@ -91,9 +96,10 @@ export class BeneficiariosService {
   }
 
   async create(tenantId: string, userId: string, dto: CreateBeneficiarioDto) {
-    if (dto.cpf) {
+    const cpf = normalizeCpf(dto.cpf)
+    if (cpf) {
       const existing = await this.prisma.beneficiary.findUnique({
-        where: { tenant_id_cpf: { tenant_id: tenantId, cpf: dto.cpf } },
+        where: { tenant_id_cpf: { tenant_id: tenantId, cpf } },
         select: { id: true },
       })
       if (existing) throw new ConflictException('CPF já cadastrado neste tenant')
@@ -108,7 +114,7 @@ export class BeneficiariosService {
         tenant_id: tenantId,
         created_by: userId,
         name: dto.name,
-        cpf: dto.cpf ?? null,
+        cpf,
         birth_date: dto.birth_date ? new Date(dto.birth_date) : undefined,
         gender: dto.gender,
         race: dto.race,
@@ -141,15 +147,21 @@ export class BeneficiariosService {
         project_id: dto.project_id ?? null,
       },
       select: BENEFICIARIO_SELECT,
+    }).catch((error: unknown) => {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException(cpf ? 'CPF já cadastrado neste tenant' : 'Já existe um cadastro com esses dados únicos.')
+      }
+      throw error
     })
   }
 
   async update(tenantId: string, id: string, dto: UpdateBeneficiarioDto) {
     await this.assertBelongsToTenant(id, tenantId)
 
-    if (dto.cpf) {
+    const cpf = dto.cpf !== undefined ? normalizeCpf(dto.cpf) : undefined
+    if (cpf) {
       const existing = await this.prisma.beneficiary.findFirst({
-        where: { tenant_id: tenantId, cpf: dto.cpf, NOT: { id } },
+        where: { tenant_id: tenantId, cpf, NOT: { id } },
         select: { id: true },
       })
       if (existing) throw new ConflictException('CPF já cadastrado por outro beneficiário')
@@ -163,7 +175,7 @@ export class BeneficiariosService {
       where: { id },
       data: {
         ...(dto.name && { name: dto.name }),
-        ...(dto.cpf !== undefined && { cpf: dto.cpf ?? null }),
+        ...(dto.cpf !== undefined && { cpf }),
         ...(dto.birth_date !== undefined && { birth_date: dto.birth_date ? new Date(dto.birth_date) : null }),
         ...(dto.gender !== undefined && { gender: dto.gender }),
         ...(dto.race !== undefined && { race: dto.race }),
@@ -196,6 +208,11 @@ export class BeneficiariosService {
         ...(dto.project_id !== undefined && { project_id: dto.project_id ?? null }),
       },
       select: BENEFICIARIO_SELECT,
+    }).catch((error: unknown) => {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException(cpf ? 'CPF já cadastrado por outro beneficiário' : 'Já existe um cadastro com esses dados únicos.')
+      }
+      throw error
     })
   }
 

@@ -3,6 +3,7 @@ import { GetServerSideProps } from 'next'
 import useSWR, { useSWRConfig } from 'swr'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import axios from 'axios'
 import { PlusCircle, Search, Users, ChevronLeft, ChevronRight, Trash2, X, Edit2, ChevronDown, School, Phone, FolderKanban, ShieldCheck, MapPin, HeartPulse, UserRound, BookOpen, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { Badge } from '@/components/ui/Badge'
@@ -59,6 +60,7 @@ function BeneficiarioForm({
 }) {
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const {
     register,
@@ -80,8 +82,12 @@ function BeneficiarioForm({
 
   async function submit(data: CreateBeneficiarioInput) {
     setSaving(true)
+    setSubmitError('')
     try {
       await onSubmit(data)
+    } catch (error) {
+      const responseMessage = axios.isAxiosError(error) ? error.response?.data?.message : undefined
+      setSubmitError(Array.isArray(responseMessage) ? responseMessage.join('. ') : responseMessage || 'Não foi possível salvar o beneficiário. Confira os dados e tente novamente.')
     } finally {
       setSaving(false)
     }
@@ -106,6 +112,8 @@ function BeneficiarioForm({
           </button>
         ))}
       </div>
+
+      {submitError && <div role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{submitError}</div>}
 
       <div className="flex-1 overflow-y-auto space-y-4">
         {/* Step 0 — Dados Pessoais */}
