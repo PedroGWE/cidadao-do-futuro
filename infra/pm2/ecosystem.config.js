@@ -18,7 +18,7 @@ module.exports = {
       name: 'cidadao-web',
       cwd: '/var/www/cidadao-futuro/apps/web',
       script: 'node',
-      args: 'node_modules/.bin/next start -p 3000',
+      args: 'node_modules/next/dist/bin/next start -p 3000',
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
