@@ -6,6 +6,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { PrismaService } from '../prisma/prisma.service'
 import { StorageService } from '../documents/storage/storage.service'
 import { FiscalNoteDto } from './dto/fiscal-note.dto'
+import { ConfigureNfseDto } from './dto/nfse-config.dto'
 import { FocusNfseClient, FocusRejectedError, FocusResult, FocusTenantConfig } from './focus-nfse.client'
 
 const DRAFT_REPORT_STATUSES = ['RASCUNHO', 'PENDENTE_CORRECAO']
@@ -15,18 +16,39 @@ export class FiscalNotesService {
   constructor(private prisma: PrismaService, private focus: FocusNfseClient, private storage: StorageService) {}
 
   async configStatus(tenantId: string) {
-    const config = this.focus.config(tenantId)
+    const config = await this.focus.config(tenantId)
     if (!config) return { configured: false, message: 'Configure a integração fiscal do instituto no servidor.' }
     const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { cnpj: true } })
     const matches = onlyDigits(tenant?.cnpj ?? '') === config.cnpj
+    const stored = await this.prisma.nfseIntegration.findUnique({ where: { tenant_id: tenantId }, select: { updated_at: true } })
     return { configured: matches, environment: config.environment, issuer_cnpj: config.cnpj,
       issuer_city_code: config.municipio_ibge,
       webhook_configured: Boolean(config.webhook_secret),
+      token_configured: Boolean(config.token), configured_in_system: Boolean(stored), updated_at: stored?.updated_at ?? null,
       ...(!matches && { message: 'O CNPJ cadastrado no instituto deve coincidir com o CNPJ emissor da integração.' }) }
   }
 
+  async configure(tenantId: string, userId: string, dto: ConfigureNfseDto) {
+    const cnpj = onlyDigits(dto.issuer_cnpj)
+    const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { cnpj: true } })
+    if (onlyDigits(tenant?.cnpj ?? '') !== cnpj) {
+      throw new BadRequestException('O CNPJ emissor deve coincidir com o CNPJ cadastrado no instituto')
+    }
+    if (dto.environment === 'PRODUCAO' && process.env.NFSE_PRODUCTION_ENABLED !== 'true') {
+      throw new ServiceUnavailableException('Habilite NFSE_PRODUCTION_ENABLED no servidor antes de configurar produção')
+    }
+    const config: FocusTenantConfig = { token: dto.token.trim(), cnpj, municipio_ibge: dto.issuer_city_code,
+      environment: dto.environment, webhook_secret: dto.webhook_secret?.trim() || undefined }
+    const record = await this.focus.saveConfig(tenantId, userId, config)
+    await this.prisma.auditLog.create({ data: { tenant_id: tenantId, user_id: userId, action: 'NFSE_CONFIGURACAO_ATUALIZADA',
+      resource: 'NfseIntegration', resource_id: record.id, new_value: { issuer_cnpj: cnpj,
+        issuer_city_code: dto.issuer_city_code, environment: dto.environment,
+        webhook_configured: Boolean(config.webhook_secret) } } })
+    return this.configStatus(tenantId)
+  }
+
   private async issuer(tenantId: string): Promise<FocusTenantConfig> {
-    const config = this.focus.config(tenantId)
+    const config = await this.focus.config(tenantId)
     if (!config) throw new ServiceUnavailableException('Integração de NFS-e não configurada para este instituto')
     const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { cnpj: true } })
     if (onlyDigits(tenant?.cnpj ?? '') !== config.cnpj) {
@@ -224,7 +246,7 @@ export class FiscalNotesService {
   }
 
   async webhook(tenantId: string, providedSecret: string | undefined, payload: unknown) {
-    const config = this.focus.config(tenantId)
+    const config = await this.focus.config(tenantId)
     const expected = config?.webhook_secret
     if (!config || !expected || !providedSecret || providedSecret.length !== expected.length ||
       !timingSafeEqual(Buffer.from(providedSecret), Buffer.from(expected))) {

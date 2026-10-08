@@ -12,15 +12,18 @@ O fluxo `RASCUNHO → ENVIANDO → PROCESSANDO → AUTORIZADA` consulta a API da
 
 1. Cadastre o CNPJ emissor no cadastro do instituto. Ele deve coincidir com o certificado e a empresa habilitada no provedor.
 2. Habilite a empresa e a NFS-e Nacional no provedor Focus NFe, inclusive o ambiente de homologação. Verifique se o município pode emitir pelo ambiente nacional e se o regime fiscal do prestador está correto.
-3. No ambiente **do servidor da API**, defina `NFSE_FOCUS_TENANTS_JSON` como um JSON com **ID do tenant** nas chaves. Exemplo fictício:
+3. No ambiente **do servidor da API**, defina uma chave-mestra estável em `NFSE_CREDENTIALS_KEY` com pelo menos 32 caracteres. Ela criptografa os tokens no banco e deve permanecer no gerenciador de segredos do deploy. Perder ou trocar essa chave impede a leitura das credenciais já salvas.
+4. Acesse **Dados públicos e integrações → NFS-e Nacional** no sistema e informe CNPJ, município IBGE, ambiente, token Focus e, opcionalmente, um segredo de webhook. O token e o segredo nunca são devolvidos pela API. `NFSE_FOCUS_TENANTS_JSON` continua aceito apenas para compatibilidade com instalações anteriores.
+
+   Exemplo legado:
 
    ```json
    {"tenant_id_aqui":{"token":"token_de_homologacao","cnpj":"11222333000181","municipio_ibge":"5300108","environment":"HOMOLOGACAO","webhook_secret":"gere-um-segredo-aleatorio-com-32-ou-mais-caracteres"}}
    ```
 
-4. Mantenha `NFSE_PRODUCTION_ENABLED=false` até concluir testes com dados de homologação. Para produção, troque o token e o ambiente do respectivo tenant para `PRODUCAO` e ative `NFSE_PRODUCTION_ENABLED=true`. O botão de envio também exibe confirmação explícita. Guarde o JSON como segredo do deploy, fora do repositório e do navegador.
-5. Execute as migrações Prisma e mantenha `STORAGE_DIR` em volume persistente; o Docker Compose já encaminha as variáveis do ambiente para o container da API.
-6. Para atualização automática, cadastre na Focus um webhook do evento `nfsen` apontando para `https://SEU_DOMINIO/api/v1/fiscal-webhooks/focus/ID_DO_TENANT`. Configure o cabeçalho de autorização como `x-amparo-webhook-secret` e use exatamente o `webhook_secret` do tenant. A rota valida o segredo, a referência e o CNPJ antes de alterar uma nota. Sem webhook, o botão **Consultar** continua funcional.
+5. Mantenha `NFSE_PRODUCTION_ENABLED=false` até concluir testes com dados de homologação. Para produção, selecione `PRODUCAO` na tela e ative `NFSE_PRODUCTION_ENABLED=true` no servidor. O botão de envio também exibe confirmação explícita.
+6. Execute as migrações Prisma e mantenha `STORAGE_DIR` em volume persistente; o Docker Compose já encaminha as variáveis do ambiente para o container da API.
+7. Para atualização automática, cadastre na Focus um webhook do evento `nfsen` apontando para `https://SEU_DOMINIO/api/v1/fiscal-webhooks/focus/ID_DO_TENANT`. Configure o cabeçalho de autorização como `x-amparo-webhook-secret` e use exatamente o segredo cadastrado na tela. A rota valida o segredo, a referência e o CNPJ antes de alterar uma nota. Sem webhook, o botão **Consultar** continua funcional.
 
 ## Uso na aba
 

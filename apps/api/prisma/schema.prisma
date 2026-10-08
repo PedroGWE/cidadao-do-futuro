@@ -584,6 +584,7 @@ model Tenant {
   payment_orders               PaymentOrder[]
   invoices                     Invoice[]
   fiscal_notes                 FiscalNote[]
+  nfse_integration             NfseIntegration?
   bank_reconciliations         BankReconciliation[]
   documents                    Document[]
   accountability_reports       AccountabilityReport[]
@@ -1506,6 +1507,25 @@ model FiscalNote {
   @@index([tenant_id, report_id])
   @@index([tenant_id, status])
   @@map("fiscal_notes")
+}
+
+model NfseIntegration {
+  id                       String            @id @default(cuid())
+  tenant_id                String            @unique
+  provider                 String            @default("FOCUS")
+  issuer_cnpj              String            @db.VarChar(14)
+  issuer_city_code         String            @db.VarChar(7)
+  environment              FiscalEnvironment @default(HOMOLOGACAO)
+  token_encrypted          String
+  webhook_secret_encrypted String?
+  active                   Boolean           @default(true)
+  configured_by            String?
+  created_at               DateTime          @default(now())
+  updated_at               DateTime          @updatedAt
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@map("nfse_integrations")
 }
 
 model BankReconciliation {

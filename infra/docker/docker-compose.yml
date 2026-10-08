@@ -63,6 +63,7 @@ services:
       STORAGE_DIR: /data/uploads
       NFSE_FOCUS_TENANTS_JSON: ${NFSE_FOCUS_TENANTS_JSON:-}
       NFSE_PRODUCTION_ENABLED: ${NFSE_PRODUCTION_ENABLED:-false}
+      NFSE_CREDENTIALS_KEY: ${NFSE_CREDENTIALS_KEY:-}
     volumes:
       - uploads_data:/data/uploads
     networks: [backend, frontend]

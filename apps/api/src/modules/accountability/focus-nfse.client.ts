@@ -1,5 +1,7 @@
-import { BadGatewayException, ServiceUnavailableException } from '@nestjs/common'
+import { BadGatewayException, Injectable, ServiceUnavailableException } from '@nestjs/common'
 import { isValidCNPJ, onlyDigits } from '@cidadao/shared'
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
+import { PrismaService } from '../prisma/prisma.service'
 
 export type FocusTenantConfig = {
   token: string
@@ -28,8 +30,61 @@ export type FocusResult = {
 export class FocusRejectedError extends Error {}
 
 /** Tokens só existem no processo servidor, indexados por tenant; nunca são enviados ao navegador. */
+@Injectable()
 export class FocusNfseClient {
-  config(tenantId: string): FocusTenantConfig | null {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private key() {
+    const secret = process.env.NFSE_CREDENTIALS_KEY
+    if (!secret || secret.length < 32) {
+      throw new ServiceUnavailableException('Configure NFSE_CREDENTIALS_KEY no servidor com ao menos 32 caracteres')
+    }
+    return createHash('sha256').update(secret).digest()
+  }
+
+  private encrypt(value: string) {
+    const iv = randomBytes(12)
+    const cipher = createCipheriv('aes-256-gcm', this.key(), iv)
+    const encrypted = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()])
+    return ['v1', iv.toString('base64url'), cipher.getAuthTag().toString('base64url'), encrypted.toString('base64url')].join('.')
+  }
+
+  private decrypt(value: string) {
+    try {
+      const [version, iv, tag, encrypted] = value.split('.')
+      if (version !== 'v1' || !iv || !tag || !encrypted) throw new Error('invalid')
+      const decipher = createDecipheriv('aes-256-gcm', this.key(), Buffer.from(iv, 'base64url'))
+      decipher.setAuthTag(Buffer.from(tag, 'base64url'))
+      return Buffer.concat([decipher.update(Buffer.from(encrypted, 'base64url')), decipher.final()]).toString('utf8')
+    } catch {
+      throw new ServiceUnavailableException('Não foi possível abrir as credenciais fiscais; confira NFSE_CREDENTIALS_KEY')
+    }
+  }
+
+  async saveConfig(tenantId: string, userId: string, config: FocusTenantConfig) {
+    const record = await this.prisma.nfseIntegration.upsert({
+      where: { tenant_id: tenantId },
+      create: { tenant_id: tenantId, issuer_cnpj: config.cnpj, issuer_city_code: config.municipio_ibge,
+        environment: config.environment, token_encrypted: this.encrypt(config.token),
+        webhook_secret_encrypted: config.webhook_secret ? this.encrypt(config.webhook_secret) : null, configured_by: userId },
+      update: { issuer_cnpj: config.cnpj, issuer_city_code: config.municipio_ibge,
+        environment: config.environment, token_encrypted: this.encrypt(config.token),
+        ...(config.webhook_secret && { webhook_secret_encrypted: this.encrypt(config.webhook_secret) }),
+        active: true, configured_by: userId },
+      select: { id: true },
+    })
+    return record
+  }
+
+  async config(tenantId: string): Promise<FocusTenantConfig | null> {
+    const stored = await this.prisma.nfseIntegration.findUnique({ where: { tenant_id: tenantId } })
+    if (stored?.active) {
+      const config: FocusTenantConfig = { token: this.decrypt(stored.token_encrypted), cnpj: stored.issuer_cnpj,
+        municipio_ibge: stored.issuer_city_code, environment: stored.environment,
+        webhook_secret: stored.webhook_secret_encrypted ? this.decrypt(stored.webhook_secret_encrypted) : undefined }
+      this.validateProduction(config)
+      return config
+    }
     let all: Record<string, unknown>
     try { all = JSON.parse(process.env.NFSE_FOCUS_TENANTS_JSON || '{}') }
     catch { throw new ServiceUnavailableException('Configuração fiscal inválida no servidor') }
@@ -43,14 +98,19 @@ export class FocusNfseClient {
       !['HOMOLOGACAO', 'PRODUCAO'].includes(String(value.environment))) {
       throw new ServiceUnavailableException('Configuração fiscal incompleta no servidor')
     }
-    if (value.environment === 'PRODUCAO' && process.env.NFSE_PRODUCTION_ENABLED !== 'true') {
-      throw new ServiceUnavailableException('Emissão em produção ainda não foi habilitada')
-    }
     if (value.webhook_secret != null && (typeof value.webhook_secret !== 'string' || value.webhook_secret.length < 32)) {
       throw new ServiceUnavailableException('Segredo do webhook fiscal deve ter ao menos 32 caracteres')
     }
-    return { token: value.token, cnpj: onlyDigits(value.cnpj), municipio_ibge: value.municipio_ibge,
+    const config = { token: value.token, cnpj: onlyDigits(value.cnpj), municipio_ibge: value.municipio_ibge,
       environment: value.environment as FocusTenantConfig['environment'], webhook_secret: value.webhook_secret as string | undefined }
+    this.validateProduction(config)
+    return config
+  }
+
+  private validateProduction(config: FocusTenantConfig) {
+    if (config.environment === 'PRODUCAO' && process.env.NFSE_PRODUCTION_ENABLED !== 'true') {
+      throw new ServiceUnavailableException('Emissão em produção ainda não foi habilitada no servidor')
+    }
   }
 
   private base(config: FocusTenantConfig) {

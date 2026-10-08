@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Param, Patch, Post, Res } from '@nestjs/common'
+import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Param, Patch, Post, Put, Res } from '@nestjs/common'
 import type { FastifyReply } from 'fastify'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import { RequirePermissions } from '../../common/decorators/permissions.decorator'
@@ -7,6 +7,7 @@ import { AccountabilityService } from './accountability.service'
 import { FiscalNotesService } from './fiscal-notes.service'
 import { CancelFiscalNoteDto, FiscalNoteDto, UpdateFiscalNoteDto } from './dto/fiscal-note.dto'
 import { Public } from '../../common/decorators/public.decorator'
+import { ConfigureNfseDto } from './dto/nfse-config.dto'
 
 @Controller('accountability')
 export class AccountabilityController {
@@ -14,6 +15,10 @@ export class AccountabilityController {
 
   @Get('fiscal/config') @RequirePermissions('accountability:read')
   config(@CurrentUser('tenantId') tenantId: string) { return this.fiscal.configStatus(tenantId) }
+
+  @Put('fiscal/config') @RequirePermissions('accountability:review')
+  configureFiscal(@CurrentUser('tenantId') tenantId: string, @CurrentUser('sub') userId: string,
+    @Body() dto: ConfigureNfseDto) { return this.fiscal.configure(tenantId, userId, dto) }
 
   @Get() @RequirePermissions('accountability:read')
   list(@CurrentUser('tenantId') tenantId: string) { return this.service.list(tenantId) }
