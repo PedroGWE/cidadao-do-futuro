@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common'
+import { Controller, Get, Param, Query } from '@nestjs/common'
 import { PublicDataService } from './public-data.service'
 
 @Controller('public-data')
@@ -9,20 +9,13 @@ export class PublicDataController {
   states() { return this.service.states() }
 
   @Get('ibge/municipalities')
-  async municipalities(@Query('uf') uf?: string) {
-    try { return await this.service.municipalities(uf) }
-    catch (error) { throw new BadRequestException((error as Error).message) }
-  }
+  municipalities(@Query('uf') uf?: string) { return this.service.municipalities(uf) }
 
   @Get('ibge/aggregates/:aggregateId/:locality')
-  async indicators(@Param('aggregateId') aggregateId: string, @Param('locality') locality: string) {
-    try { return await this.service.indicators(aggregateId, locality) }
-    catch (error) { throw new BadRequestException((error as Error).message) }
+  indicators(@Param('aggregateId') aggregateId: string, @Param('locality') locality: string) {
+    return this.service.indicators(aggregateId, locality)
   }
 
   @Get('transparency/sanctions/:cnpj')
-  async sanctions(@Param('cnpj') cnpj: string) {
-    try { return await this.service.sanctions(cnpj) }
-    catch (error) { throw new BadRequestException((error as Error).message) }
-  }
+  sanctions(@Param('cnpj') cnpj: string) { return this.service.sanctions(cnpj) }
 }

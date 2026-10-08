@@ -1,4 +1,4 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common'
+import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
 const IBGE_BASE = 'https://servicodados.ibge.gov.br/api/v1'
@@ -14,7 +14,7 @@ export class PublicDataService {
 
   async municipalities(uf?: string) {
     const state = uf?.trim().toUpperCase()
-    if (state && !/^[A-Z]{2}$/.test(state)) throw new Error('Informe uma UF válida.')
+    if (state && !/^[A-Z]{2}$/.test(state)) throw new BadRequestException('Informe uma UF válida.')
     const url = state
       ? `${IBGE_BASE}/localidades/estados/${encodeURIComponent(state)}/municipios?orderBy=nome`
       : `${IBGE_BASE}/localidades/municipios?orderBy=nome`
@@ -23,7 +23,7 @@ export class PublicDataService {
 
   async indicators(aggregateId: string, locality: string) {
     if (!/^\d{1,6}$/.test(aggregateId) || !/^N[1-7](?:\d{7})?$/.test(locality)) {
-      throw new Error('Agregado ou código de localidade inválido.')
+      throw new BadRequestException('Agregado ou código de localidade inválido.')
     }
     return this.fetchJson(`https://servicodados.ibge.gov.br/api/v3/agregados/${aggregateId}/periodos/-6/variaveis?localidades=${encodeURIComponent(locality)}`)
   }
@@ -32,7 +32,7 @@ export class PublicDataService {
     const token = this.config.get<string>('PORTAL_TRANSPARENCIA_TOKEN')
     if (!token) throw new ServiceUnavailableException('Integração do Portal da Transparência não configurada. Cadastre o token oficial no ambiente da API.')
     const normalized = cnpj.replace(/\D/g, '')
-    if (!/^\d{14}$/.test(normalized)) throw new Error('Informe um CNPJ válido com 14 dígitos.')
+    if (!/^\d{14}$/.test(normalized)) throw new BadRequestException('Informe um CNPJ válido com 14 dígitos.')
 
     const endpoints = ['ceis', 'cnep', 'cepim'] as const
     const results = await Promise.all(endpoints.map(async (source) => {
