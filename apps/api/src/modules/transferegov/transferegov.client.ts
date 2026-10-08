@@ -29,14 +29,12 @@ const LEGACY_DOWNLOAD_TIMEOUT_MS = 20 * 60 * 1000
 export class TransferegovClient {
   private readonly baseUrl: string
   private readonly timeoutMs: number
-  private readonly apiKey?: string
   private legacyCache?: { expiresAt: number; cnpjKey: string; records: Map<string, LegacyRecords> }
   private legacyLoad?: { cnpjKey: string; promise: Promise<Map<string, LegacyRecords>> }
 
   constructor(config: ConfigService) {
     this.baseUrl = config.get('TRANSFEREGOV_API_URL') ?? 'https://api-publica.transferegov.gestao.gov.br/parcerias'
     this.timeoutMs = Number(config.get('TRANSFEREGOV_TIMEOUT_MS') ?? 15000)
-    this.apiKey = config.get<string>('TRANSFEREGOV_API_KEY')?.trim() || undefined
   }
 
   async proposalsByCnpj(cnpj: string): Promise<OfficialRecord[]> {
@@ -139,7 +137,7 @@ export class TransferegovClient {
         dh_fim_vigencia: this.field(row, 'DIA_FIM_VIGENCIA_PROPOSTA'),
       }
       proposalsById.set(id, { cnpj, record: proposal })
-    }, ['ID_PROPOSTA', 'ID_PROPONENTE', 'VL_GLOBAL_PROP']))
+    }, ['ID_PROPOSTA', 'VL_GLOBAL_PROP']))
     for (const { cnpj, record } of proposalsById.values()) records.get(cnpj)?.proposals.push(record)
     } catch (error) {
       for (const item of records.values()) item.sourceErrors.push(`siconv_proposta.zip: ${error instanceof Error ? error.message : String(error)}`)
@@ -192,7 +190,7 @@ export class TransferegovClient {
   private async readLegacyCsv(file: string, onRow: (row: Record<string, string>) => void, requiredColumns: string[]) {
     if (!/^siconv_(proponentes|proposta|convenio)\.zip$/.test(file)) throw new ServiceUnavailableException('Arquivo fora da lista permitida de dados oficiais.')
     const response = await fetch(`${PUBLIC_DOWNLOADS}/${file}`, {
-      headers: { ...this.authHeaders(), accept: 'application/zip', 'user-agent': 'Semevo-Transferegov/1.0' },
+      headers: { accept: 'application/zip', 'user-agent': 'Semevo-Transferegov/1.0' },
       signal: AbortSignal.timeout(Math.max(this.timeoutMs, LEGACY_DOWNLOAD_TIMEOUT_MS)),
     })
     if (!response.ok || !response.body) {
@@ -265,7 +263,7 @@ export class TransferegovClient {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         const response = await fetch(url, {
-          headers: { ...this.authHeaders(), accept: 'application/json', 'user-agent': 'Semevo-Transferegov/1.0' },
+          headers: { accept: 'application/json', 'user-agent': 'Semevo-Transferegov/1.0' },
           signal: AbortSignal.timeout(this.timeoutMs),
         })
         if (response.status === 429 || response.status >= 500) throw new Error(`HTTP ${response.status}`)
@@ -279,7 +277,4 @@ export class TransferegovClient {
     throw new ServiceUnavailableException(`Não foi possível consultar o Transferegov após tentativas limitadas: ${String((lastError as Error)?.message ?? lastError)}`)
   }
 
-  private authHeaders(): Record<string, string> {
-    return this.apiKey ? { 'chave-api-dados': this.apiKey } : {}
-  }
 }

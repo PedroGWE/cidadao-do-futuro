@@ -81,15 +81,15 @@ jobs:
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
-          TRANSFEREGOV_API_KEY: ${{ secrets.TRANSFEREGOV_API_KEY }}
+          PORTAL_TRANSPARENCIA_TOKEN: ${{ secrets.PORTAL_TRANSPARENCIA_TOKEN }}
         run: |
           test -n "$SSH_USER"
-          test -n "$TRANSFEREGOV_API_KEY"
-          printf '%s\n' "$TRANSFEREGOV_API_KEY" | ssh -i ~/.ssh/deploy_key \
+          test -n "$PORTAL_TRANSPARENCIA_TOKEN"
+          printf '%s\n' "$PORTAL_TRANSPARENCIA_TOKEN" | ssh -i ~/.ssh/deploy_key \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
             "$SSH_USER@$SSH_HOST" \
-            'cd /var/www/cidadao-futuro && git fetch origin main && git pull --ff-only origin main && python3 infra/scripts/set-transferegov-key.py'
+            'cd /var/www/cidadao-futuro && git fetch origin main && git pull --ff-only origin main && python3 infra/scripts/set-portal-transparency-token.py'
           ssh -i ~/.ssh/deploy_key \
             -o BatchMode=yes \
             -o IdentitiesOnly=yes \
