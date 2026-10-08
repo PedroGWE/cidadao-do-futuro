@@ -6,7 +6,14 @@ const TRANSPARENCIA_BASE = 'https://api.portaldatransparencia.gov.br/api-de-dado
 
 @Injectable()
 export class PublicDataService {
-  constructor(private readonly config: ConfigService) {}
+  private readonly transparencyTimeoutMs: number
+
+  constructor(private readonly config: ConfigService) {
+    const configuredTimeout = Number(config.get('PORTAL_TRANSPARENCIA_TIMEOUT_MS') ?? 15000)
+    this.transparencyTimeoutMs = Number.isFinite(configuredTimeout)
+      ? Math.min(Math.max(configuredTimeout, 1000), 30000)
+      : 15000
+  }
 
   async states() {
     return this.fetchJson(`${IBGE_BASE}/localidades/estados?orderBy=nome`)
@@ -39,18 +46,44 @@ export class PublicDataService {
       const url = new URL(`${TRANSPARENCIA_BASE}/${source}`)
       url.searchParams.set('cnpjSancionado', normalized)
       url.searchParams.set('pagina', '1')
-      const data = await this.fetchJson(url.toString(), { 'chave-api-dados': token })
-      return { source: source.toUpperCase(), records: Array.isArray(data) ? data : [] }
+      try {
+        const data = await this.fetchJson(url.toString(), { 'chave-api-dados': token }, this.transparencyTimeoutMs)
+        if (!Array.isArray(data)) throw new ServiceUnavailableException('Resposta da fonte em formato inesperado.')
+        return { source: source.toUpperCase(), status: 'OK' as const, records: data, error: null }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Falha ao consultar a fonte.'
+        return { source: source.toUpperCase(), status: 'UNAVAILABLE' as const, records: [], error: message }
+      }
     }))
-    return { cnpj: normalized, consulted_at: new Date().toISOString(), results }
+    return { cnpj: normalized, consulted_at: new Date().toISOString(), partial: results.some((result) => result.status !== 'OK'), results }
   }
 
-  private async fetchJson(url: string, headers: Record<string, string> = {}) {
-    const response = await fetch(url, {
-      headers: { Accept: 'application/json', ...headers },
-      signal: AbortSignal.timeout(12_000),
-    })
-    if (!response.ok) throw new ServiceUnavailableException(`Fonte externa indisponível (HTTP ${response.status}).`)
-    return response.json()
+  private async fetchJson(url: string, headers: Record<string, string> = {}, timeoutMs = 12_000) {
+    let lastStatus: number | null = null
+    let networkFailed = false
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      let response: Response
+      try {
+        response = await fetch(url, {
+          headers: { Accept: 'application/json', ...headers },
+          signal: AbortSignal.timeout(timeoutMs),
+        })
+      } catch {
+        networkFailed = true
+        if (attempt === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 500))
+          continue
+        }
+        throw new ServiceUnavailableException('Tempo limite ou falha de rede ao consultar a fonte externa.')
+      }
+      if (response.ok) return response.json()
+      lastStatus = response.status
+      if (![429, 502, 503, 504].includes(response.status) || attempt === 1) break
+      const retryAfter = Number(response.headers.get('retry-after'))
+      const delayMs = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, 3000) : 500
+      await new Promise((resolve) => setTimeout(resolve, delayMs))
+    }
+    if (lastStatus !== null) throw new ServiceUnavailableException(`Portal da Transparência indisponível (HTTP ${lastStatus}) após nova tentativa.`)
+    throw new ServiceUnavailableException(networkFailed ? 'Não foi possível consultar a fonte externa.' : 'Fonte externa indisponível.')
   }
 }

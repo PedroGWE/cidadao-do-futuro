@@ -6,7 +6,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout'
 
 type State = { id: number; nome: string; sigla: string }
 type Municipality = { id: number; nome: string }
-type SanctionResult = { source: string; records: Record<string, unknown>[] }
+type SanctionResult = { source: string; status?: 'OK' | 'UNAVAILABLE'; error?: string | null; records: Record<string, unknown>[] }
 
 export default function IntegracoesPage() {
   const [states, setStates] = useState<State[]>([])
@@ -64,7 +64,7 @@ export default function IntegracoesPage() {
     <section className="card space-y-4">
       <div><h2 className="font-semibold text-gray-900">Portal da Transparência · CEIS, CNEP e CEPIM</h2><p className="text-sm text-gray-500">Verifique registros de sanções federais para a organização ou um fornecedor. A consulta não substitui análise jurídica.</p></div>
       <form onSubmit={checkSanctions} className="flex flex-wrap gap-3"><input className="input min-w-64 flex-1" inputMode="numeric" maxLength={18} placeholder="CNPJ (14 dígitos)" value={cnpj} onChange={(event) => setCnpj(event.target.value)} required /><button className="btn-primary inline-flex items-center gap-2" disabled={loadingSanctions}>{loadingSanctions ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}Consultar sanções</button></form>
-      {sanctions && <div className="space-y-2">{sanctions.map((result) => <div key={result.source} className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3 text-sm"><span className="font-medium text-gray-800">{result.source}</span><span className={result.records.length ? 'text-amber-700' : 'inline-flex items-center gap-1 text-emerald-700'}>{result.records.length ? `${result.records.length} registro(s)` : <><CheckCircle2 className="h-4 w-4" />Nenhum registro encontrado</>}</span></div>)}</div>}
+      {sanctions && <div className="space-y-2">{sanctions.map((result) => <div key={result.source} className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3 text-sm"><span className="font-medium text-gray-800">{result.source}</span><span className={result.status === 'UNAVAILABLE' ? 'text-red-700' : result.records.length ? 'text-amber-700' : 'inline-flex items-center gap-1 text-emerald-700'}>{result.status === 'UNAVAILABLE' ? result.error ?? 'Consulta temporariamente indisponível' : result.records.length ? `${result.records.length} registro(s)` : <><CheckCircle2 className="h-4 w-4" />Nenhum registro encontrado</>}</span></div>)}</div>}
     </section>
 
     <section className="card space-y-3"><h2 className="font-semibold text-gray-900">Outras fontes integradas e acesso</h2>
