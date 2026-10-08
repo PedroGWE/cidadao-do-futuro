@@ -12,7 +12,7 @@ O fluxo `RASCUNHO → ENVIANDO → PROCESSANDO → AUTORIZADA` consulta a API da
 
 1. Cadastre o CNPJ emissor no cadastro do instituto. Ele deve coincidir com o certificado e a empresa habilitada no provedor.
 2. Habilite a empresa e a NFS-e Nacional no provedor Focus NFe, inclusive o ambiente de homologação. Verifique se o município pode emitir pelo ambiente nacional e se o regime fiscal do prestador está correto.
-3. No ambiente **do servidor da API**, defina uma chave-mestra estável em `NFSE_CREDENTIALS_KEY` com pelo menos 32 caracteres. Ela criptografa os tokens no banco e deve permanecer no gerenciador de segredos do deploy. Perder ou trocar essa chave impede a leitura das credenciais já salvas.
+3. O servidor criptografa os tokens com uma chave dedicada `NFSE_CREDENTIALS_KEY` quando ela estiver definida; caso contrário, deriva uma chave isolada do `JWT_SECRET` já obrigatório. A origem usada fica registrada no próprio valor cifrado, permitindo adotar uma chave dedicada depois sem invalidar credenciais anteriores. Ambas devem ter ao menos 32 caracteres e permanecer estáveis no gerenciador de segredos do deploy.
 4. Acesse **Dados públicos e integrações → NFS-e Nacional** no sistema e informe CNPJ, município IBGE, ambiente, token Focus e, opcionalmente, um segredo de webhook. O token e o segredo nunca são devolvidos pela API. `NFSE_FOCUS_TENANTS_JSON` continua aceito apenas para compatibilidade com instalações anteriores.
 
    Exemplo legado:

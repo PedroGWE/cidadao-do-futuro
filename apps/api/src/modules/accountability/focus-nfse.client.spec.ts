@@ -9,7 +9,7 @@ beforeEach(() => {
   process.env.NFSE_FOCUS_TENANTS_JSON = JSON.stringify({ [tenant]: config })
   delete process.env.NFSE_PRODUCTION_ENABLED
 })
-afterEach(() => { delete process.env.NFSE_FOCUS_TENANTS_JSON; jest.restoreAllMocks() })
+afterEach(() => { delete process.env.NFSE_FOCUS_TENANTS_JSON; delete process.env.NFSE_CREDENTIALS_KEY; jest.restoreAllMocks() })
 
 describe('NFS-e: credenciais e provedor', () => {
   it('separa credenciais por instituto e impede produção sem habilitação explícita', async () => {
@@ -48,6 +48,13 @@ describe('NFS-e: credenciais e provedor', () => {
     expect(args.create.token_encrypted).not.toContain(config.token)
     expect(args.create.webhook_secret_encrypted).not.toContain('segredo-webhook')
     expect(args.create.token_encrypted).toMatch(/^v1\./)
-    delete process.env.NFSE_CREDENTIALS_KEY
+  })
+
+  it('usa derivação isolada do JWT_SECRET quando a chave fiscal dedicada não existe', async () => {
+    process.env.JWT_SECRET = 'jwt-secret-de-producao-com-mais-de-trinta-e-dois-caracteres'
+    prisma.nfseIntegration.upsert.mockResolvedValue({ id: 'integration-2' })
+    await client.saveConfig(tenant, 'user-1', { ...config, environment: 'HOMOLOGACAO' })
+    const encrypted = prisma.nfseIntegration.upsert.mock.calls.at(-1)![0].create.token_encrypted
+    expect(encrypted).toMatch(/^v1\.jwt\./)
   })
 })

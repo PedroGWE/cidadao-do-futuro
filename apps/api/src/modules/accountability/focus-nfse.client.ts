@@ -34,30 +34,34 @@ export class FocusRejectedError extends Error {}
 export class FocusNfseClient {
   constructor(private readonly prisma: PrismaService) {}
 
-  private key() {
-    const secret = process.env.NFSE_CREDENTIALS_KEY
+  private key(source?: 'nfse' | 'jwt') {
+    const selected = source ?? (process.env.NFSE_CREDENTIALS_KEY ? 'nfse' : 'jwt')
+    const secret = selected === 'nfse' ? process.env.NFSE_CREDENTIALS_KEY : process.env.JWT_SECRET
     if (!secret || secret.length < 32) {
-      throw new ServiceUnavailableException('Configure NFSE_CREDENTIALS_KEY no servidor com ao menos 32 caracteres')
+      throw new ServiceUnavailableException('Configure NFSE_CREDENTIALS_KEY ou JWT_SECRET no servidor com ao menos 32 caracteres')
     }
-    return createHash('sha256').update(secret).digest()
+    return createHash('sha256').update(`amparo:nfse-credentials:v1:${secret}`).digest()
   }
 
   private encrypt(value: string) {
+    const source = process.env.NFSE_CREDENTIALS_KEY ? 'nfse' : 'jwt'
     const iv = randomBytes(12)
-    const cipher = createCipheriv('aes-256-gcm', this.key(), iv)
+    const cipher = createCipheriv('aes-256-gcm', this.key(source), iv)
     const encrypted = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()])
-    return ['v1', iv.toString('base64url'), cipher.getAuthTag().toString('base64url'), encrypted.toString('base64url')].join('.')
+    return ['v1', source, iv.toString('base64url'), cipher.getAuthTag().toString('base64url'), encrypted.toString('base64url')].join('.')
   }
 
   private decrypt(value: string) {
     try {
-      const [version, iv, tag, encrypted] = value.split('.')
-      if (version !== 'v1' || !iv || !tag || !encrypted) throw new Error('invalid')
-      const decipher = createDecipheriv('aes-256-gcm', this.key(), Buffer.from(iv, 'base64url'))
+      const parts = value.split('.')
+      const [version, source, iv, tag, encrypted] = parts.length === 5
+        ? parts : [parts[0], process.env.NFSE_CREDENTIALS_KEY ? 'nfse' : 'jwt', ...parts.slice(1)]
+      if (version !== 'v1' || !['nfse', 'jwt'].includes(source) || !iv || !tag || !encrypted) throw new Error('invalid')
+      const decipher = createDecipheriv('aes-256-gcm', this.key(source as 'nfse' | 'jwt'), Buffer.from(iv, 'base64url'))
       decipher.setAuthTag(Buffer.from(tag, 'base64url'))
       return Buffer.concat([decipher.update(Buffer.from(encrypted, 'base64url')), decipher.final()]).toString('utf8')
     } catch {
-      throw new ServiceUnavailableException('Não foi possível abrir as credenciais fiscais; confira NFSE_CREDENTIALS_KEY')
+      throw new ServiceUnavailableException('Não foi possível abrir as credenciais fiscais; confira a chave usada pelo servidor')
     }
   }
 
