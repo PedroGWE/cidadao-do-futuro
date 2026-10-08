@@ -28,7 +28,7 @@ Referências oficiais: [portal de APIs públicas](https://api-publica.transfereg
 
 ## Operação e recuperação
 
-Configure `TRANSFEREGOV_API_URL` para a raiz oficial e defina timeout de rede conforme o ambiente da API. Não coloque tokens ou credenciais neste arquivo; a API pública validada não exigiu token nas consultas de leitura testadas. Se uma fonte estiver indisponível, consulte o histórico da execução, corrija a conectividade e execute nova sincronização. Não apague registros para forçar atualização: os registros existentes são atualizados pela chave oficial e o vínculo de projeto é preservado.
+Configure `TRANSFEREGOV_API_URL` para a raiz oficial, defina `TRANSFEREGOV_TIMEOUT_MS` conforme a rede e, quando exigido pela fonte, injete `TRANSFEREGOV_API_KEY` no ambiente da API. O client envia essa variável no header oficial `chave-api-dados` tanto às consultas JSON quanto aos downloads CSV/ZIP; o valor não deve ser salvo no repositório nem em logs. Se uma fonte estiver indisponível, consulte o histórico da execução, corrija a conectividade e execute nova sincronização. Não apague registros para forçar atualização: os registros existentes são atualizados pela chave oficial e o vínculo de projeto é preservado.
 
 Os arquivos CSV são grandes e sujeitos a publicação/substituição pelo operador da fonte. Validação de esquema rejeita arquivos incompatíveis; erro de um arquivo não deve apagar registros já válidos obtidos de outra fonte. Uma sincronização parcial deve ser revisada antes de interpretar registros não vistos como removidos.
 
