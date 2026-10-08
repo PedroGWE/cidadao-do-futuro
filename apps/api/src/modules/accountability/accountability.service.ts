@@ -10,7 +10,7 @@ export class AccountabilityService {
   list(tenantId: string) {
     return this.prisma.accountabilityReport.findMany({
       where: { tenant_id: tenantId },
-      include: { project: { select: { id: true, name: true } }, _count: { select: { items: true, glosses: true } } },
+      include: { project: { select: { id: true, name: true } }, _count: { select: { items: true, glosses: true, fiscal_notes: true } } },
       orderBy: { updated_at: 'desc' },
     })
   }
@@ -20,8 +20,12 @@ export class AccountabilityService {
       where: { id, tenant_id: tenantId },
       include: {
         project: { select: { id: true, name: true } },
-        items: { include: { transaction: { select: { id: true, date: true, type: true, status: true } } }, orderBy: { created_at: 'asc' } },
+        items: { include: { transaction: { select: { id: true, date: true, type: true, status: true,
+          invoices: { where: { tenant_id: tenantId }, select: { id: true, number: true, supplier_name: true, status: true } } } } }, orderBy: { created_at: 'asc' } },
         glosses: true,
+        fiscal_notes: { select: { id: true, transaction_id: true, status: true, environment: true,
+          customer_name: true, amount: true, provider_message: true, number: true,
+          access_key: true, xml_storage_key: true, pdf_storage_key: true } },
       },
     })
     if (!report) throw new NotFoundException('Prestação de contas não encontrada')
@@ -48,10 +52,12 @@ export class AccountabilityService {
     if (report.status !== AccountabilityReportStatus.RASCUNHO && report.status !== AccountabilityReportStatus.PENDENTE_CORRECAO) {
       throw new BadRequestException('Somente prestações em rascunho ou correção podem ser recalculadas')
     }
+    const endExclusive = new Date(report.period_end)
+    endExclusive.setUTCDate(endExclusive.getUTCDate() + 1)
     const transactions = await this.prisma.transaction.findMany({
       where: {
         tenant_id: tenantId, status: { in: ['APROVADO', 'PAGO'] },
-        date: { gte: report.period_start, lte: report.period_end },
+        date: { gte: report.period_start, lt: endExclusive },
         ...(report.project_id && { project_id: report.project_id }),
       },
       select: { id: true, type: true, description: true, amount: true, category: true },
@@ -59,11 +65,21 @@ export class AccountabilityService {
     const received = transactions.filter((item) => item.type === TransactionType.RECEITA).reduce((sum, item) => sum.plus(item.amount), new Prisma.Decimal(0))
     const spent = transactions.filter((item) => item.type === TransactionType.DESPESA).reduce((sum, item) => sum.plus(item.amount), new Prisma.Decimal(0))
     return this.prisma.$transaction(async (tx) => {
-      await tx.accountabilityItem.deleteMany({ where: { report_id: id } })
-      if (transactions.length) await tx.accountabilityItem.createMany({ data: transactions.map((item) => ({
-        report_id: id, transaction_id: item.id, description: item.description, amount: item.amount,
-        category: item.category, status: 'CONSOLIDADO',
-      })) })
+      // Preserva documentos e glosas dos itens existentes ao recalcular.
+      const existing = await tx.accountabilityItem.findMany({ where: { report_id: id } })
+      for (const item of transactions) {
+        const old = existing.find((row) => row.transaction_id === item.id)
+        const data = { description: item.description, amount: item.amount, category: item.category, status: 'CONSOLIDADO' }
+        if (old) await tx.accountabilityItem.update({ where: { id: old.id }, data })
+        else await tx.accountabilityItem.create({ data: { report_id: id, transaction_id: item.id, ...data } })
+      }
+      const selectedIds = new Set(transactions.map((item) => item.id))
+      for (const old of existing.filter((row) => row.transaction_id && !selectedIds.has(row.transaction_id))) {
+        const hasEvidence = old.document_ids.length > 0 || await tx.accountabilityGloss.count({ where: { item_id: old.id } }) > 0 ||
+          await tx.fiscalNote.count({ where: { report_id: id, transaction_id: old.transaction_id! } }) > 0
+        if (hasEvidence) throw new BadRequestException('Uma transação com evidências saiu do período; revise-a antes de recalcular')
+        await tx.accountabilityItem.delete({ where: { id: old.id } })
+      }
       return tx.accountabilityReport.update({ where: { id }, data: { total_received: received, total_spent: spent, balance: received.minus(spent) } })
     })
   }
@@ -76,6 +92,9 @@ export class AccountabilityService {
       PENDENTE_CORRECAO: ['EM_REVISAO'],
     }
     if (!allowed[report.status].includes(next)) throw new BadRequestException('Transição de situação inválida')
+    if (next === 'SUBMETIDO' && report.fiscal_notes.some((note) => note.status !== 'AUTORIZADA' || !note.xml_storage_key)) {
+      throw new BadRequestException('Existem NFS-e vinculadas sem autorização ou XML arquivado')
+    }
     const changed = await this.prisma.accountabilityReport.updateMany({
       where: { id, tenant_id: tenantId, status: report.status },
       data: {
@@ -91,10 +110,16 @@ export class AccountabilityService {
   async csv(tenantId: string, id: string) {
     const report = await this.findOne(tenantId, id)
     const escape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`
+    const fiscalByTransaction = new Map(report.fiscal_notes.map((note) => [note.transaction_id, note]))
     return [
-      ['Transação', 'Data', 'Tipo', 'Descrição', 'Categoria', 'Valor', 'Situação'].map(escape).join(','),
-      ...report.items.map((item) => [item.transaction_id, item.transaction?.date.toISOString().slice(0, 10), item.transaction?.type,
-        item.description, item.category, item.amount.toFixed(2), item.status].map(escape).join(',')),
+      ['Transação', 'Data', 'Tipo', 'Descrição', 'Categoria', 'Valor', 'Situação', 'NFS-e', 'Chave NFS-e', 'Situação fiscal', 'Notas de fornecedores'].map(escape).join(','),
+      ...report.items.map((item) => {
+        const fiscal = fiscalByTransaction.get(item.transaction_id ?? '')
+        return [item.transaction_id, item.transaction?.date.toISOString().slice(0, 10), item.transaction?.type,
+          item.description, item.category, item.amount.toFixed(2), item.status,
+          fiscal?.number, fiscal?.access_key, fiscal?.status,
+          item.transaction?.invoices.map((invoice) => `${invoice.number ?? 's/n'} (${invoice.status})`).join('; ')].map(escape).join(',')
+      }),
     ].join('\r\n')
   }
 }

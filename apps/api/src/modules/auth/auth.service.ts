@@ -47,7 +47,7 @@ export class AuthService {
       data: { last_login_at: new Date() },
     })
 
-    return { ...tokens, user: this.sanitizeUser(user) }
+    return { ...tokens, user: { ...this.sanitizeUser(user), permissions } }
   }
 
   async register(dto: RegisterDto) {
@@ -85,7 +85,7 @@ export class AuthService {
     })
 
     const tokens = await this.generateTokens(user.id, tenant.id, user.email, ['*'])
-    return { ...tokens, user: this.sanitizeUser(user) }
+    return { ...tokens, user: { ...this.sanitizeUser(user), permissions: ['*'] } }
   }
 
   async refresh(tokenRaw: string) {

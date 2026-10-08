@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common'
-import { AccountabilityController } from './accountability.controller'
+import { AccountabilityController, FiscalWebhookController } from './accountability.controller'
 import { AccountabilityService } from './accountability.service'
+import { FiscalNotesService } from './fiscal-notes.service'
+import { FocusNfseClient } from './focus-nfse.client'
+import { DocumentsModule } from '../documents/documents.module'
 
-@Module({ controllers: [AccountabilityController], providers: [AccountabilityService] })
+@Module({ imports: [DocumentsModule], controllers: [AccountabilityController, FiscalWebhookController], providers: [AccountabilityService, FiscalNotesService, FocusNfseClient] })
 export class AccountabilityModule {}

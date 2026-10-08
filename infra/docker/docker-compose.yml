@@ -61,6 +61,8 @@ services:
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       STORAGE_DIR: /data/uploads
+      NFSE_FOCUS_TENANTS_JSON: ${NFSE_FOCUS_TENANTS_JSON:-}
+      NFSE_PRODUCTION_ENABLED: ${NFSE_PRODUCTION_ENABLED:-false}
     volumes:
       - uploads_data:/data/uploads
     networks: [backend, frontend]
