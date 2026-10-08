@@ -62,6 +62,6 @@ export const transferegovService = {
   sync: () => api.post('/integrations/transferegov/sync').then((response) => response.data),
   records: () => api.get<TransferegovRecord[]>('/integrations/transferegov/records').then((response) => response.data),
   history: () => api.get<TransferegovRun[]>('/integrations/transferegov/history').then((response) => response.data),
-  importRecords: (recordIds: string[]) =>
-    api.post('/integrations/transferegov/import', { record_ids: recordIds }).then((response) => response.data),
+  importRecords: (recordIds: string[], projectId?: string) =>
+    api.post('/integrations/transferegov/import', { record_ids: recordIds, ...(projectId ? { project_id: projectId } : {}) }).then((response) => response.data),
 }

@@ -17,9 +17,11 @@ export type OfficialRecord = Record<string, unknown>
 export interface LegacyRecords {
   proposals: OfficialRecord[]
   partnerships: OfficialRecord[]
+  sourceReferenceAt: Date | null
+  sourceErrors: string[]
 }
 
-const LEGACY_DOWNLOADS = 'https://repositorio.dados.gov.br/seges/detru'
+const PUBLIC_DOWNLOADS = 'https://api-publica.transferegov.gestao.gov.br/downloads/dadosgov'
 const LEGACY_SOURCE_TTL_MS = 24 * 60 * 60 * 1000
 const LEGACY_DOWNLOAD_TIMEOUT_MS = 20 * 60 * 1000
 
@@ -41,6 +43,21 @@ export class TransferegovClient {
 
   async partnershipsByProposal(proposalId: string): Promise<OfficialRecord[]> {
     return this.allPages('/parceria', { id_proposta: proposalId })
+  }
+
+  async programNamesByIds(ids: string[]): Promise<Map<string, string>> {
+    const uniqueIds = [...new Set(ids.filter(Boolean))]
+    const result = new Map<string, string>()
+    for (let offset = 0; offset < uniqueIds.length; offset += 5) {
+      const batch = uniqueIds.slice(offset, offset + 5)
+      const pages = await Promise.all(batch.map((id) => this.allPages('/programa', { id_programa: id })))
+      pages.flat().forEach((program) => {
+        const id = this.field(program, 'id_programa')
+        const name = this.field(program, 'nm_programa')
+        if (id && name) result.set(id, name)
+      })
+    }
+    return result
   }
 
   async referenceDate(): Promise<Date | null> {
@@ -71,22 +88,30 @@ export class TransferegovClient {
   private async loadLegacyRecords(normalizedCnpjs: string[], cnpjKey: string): Promise<Map<string, LegacyRecords>> {
 
     const matches = new Set(normalizedCnpjs)
-    const records = new Map(normalizedCnpjs.map((cnpj) => [cnpj, { proposals: [], partnerships: [] } as LegacyRecords]))
+    const records = new Map(normalizedCnpjs.map((cnpj) => [cnpj, { proposals: [], partnerships: [], sourceReferenceAt: null, sourceErrors: [] } as LegacyRecords]))
     const proponentIds = new Map<string, { cnpj: string; name: string }>()
 
-    await this.readLegacyCsv('siconv_proponentes.csv.zip', (row) => {
-      const cnpj = this.cnpjFrom(row.IDENTIF_PROPONENTE)
-      const id = this.field(row, 'ID_PROPONENTE')
-      if (cnpj && matches.has(cnpj) && id) proponentIds.set(id, { cnpj, name: this.field(row, 'NM_PROPONENTE') ?? '' })
-    })
+    let latestSourceDate: Date | null = null
+    const trackSourceDate = (date: Date | null) => { if (date && (!latestSourceDate || date > latestSourceDate)) latestSourceDate = date }
+    try {
+      trackSourceDate(await this.readLegacyCsv('siconv_proponentes.zip', (row) => {
+        const cnpj = this.cnpjFrom(row.IDENTIF_PROPONENTE)
+        const id = this.field(row, 'ID_PROPONENTE')
+        if (cnpj && matches.has(cnpj) && id) proponentIds.set(id, { cnpj, name: this.field(row, 'NM_PROPONENTE') ?? '' })
+      }, ['IDENTIF_PROPONENTE', 'ID_PROPONENTE', 'NM_PROPONENTE']))
+    } catch (error) {
+      for (const item of records.values()) item.sourceErrors.push(`siconv_proponentes.zip: ${error instanceof Error ? error.message : String(error)}`)
+    }
 
-    if (!proponentIds.size) {
-      this.legacyCache = { expiresAt: Date.now() + LEGACY_SOURCE_TTL_MS, cnpjKey, records }
+    if (!proponentIds.size || [...records.values()].some((item) => item.sourceErrors.length)) {
+      for (const item of records.values()) item.sourceReferenceAt = latestSourceDate
+      if (![...records.values()].some((item) => item.sourceErrors.length)) this.legacyCache = { expiresAt: Date.now() + LEGACY_SOURCE_TTL_MS, cnpjKey, records }
       return records
     }
 
     const proposalsById = new Map<string, { cnpj: string; record: OfficialRecord }>()
-    await this.readLegacyCsv('siconv_proposta.csv.zip', (row) => {
+    try {
+    trackSourceDate(await this.readLegacyCsv('siconv_proposta.zip', (row) => {
       const id = this.field(row, 'ID_PROPOSTA')
       if (!id) return
       const directCnpj = this.cnpjFrom(row.IDENTIF_PROPONENTE ?? row.CNPJ_PROPONENTE ?? row.cnpj_ente_recebedor)
@@ -112,15 +137,21 @@ export class TransferegovClient {
         dh_fim_vigencia: this.field(row, 'DIA_FIM_VIGENCIA_PROPOSTA'),
       }
       proposalsById.set(id, { cnpj, record: proposal })
-      records.get(cnpj)?.proposals.push(proposal)
-    })
+    }, ['ID_PROPOSTA', 'ID_PROPONENTE', 'VL_GLOBAL_PROP']))
+    for (const { cnpj, record } of proposalsById.values()) records.get(cnpj)?.proposals.push(record)
+    } catch (error) {
+      for (const item of records.values()) item.sourceErrors.push(`siconv_proposta.zip: ${error instanceof Error ? error.message : String(error)}`)
+    }
 
-    if (!proposalsById.size) {
-      this.legacyCache = { expiresAt: Date.now() + LEGACY_SOURCE_TTL_MS, cnpjKey, records }
+    if (!proposalsById.size || [...records.values()].some((item) => item.sourceErrors.length)) {
+      for (const item of records.values()) item.sourceReferenceAt = latestSourceDate
+      if (![...records.values()].some((item) => item.sourceErrors.length)) this.legacyCache = { expiresAt: Date.now() + LEGACY_SOURCE_TTL_MS, cnpjKey, records }
       return records
     }
 
-    await this.readLegacyCsv('siconv_convenio.csv.zip', (row) => {
+    const partnershipsByCnpj = new Map<string, OfficialRecord[]>()
+    try {
+    trackSourceDate(await this.readLegacyCsv('siconv_convenio.zip', (row) => {
       const proposalId = this.field(row, 'ID_PROPOSTA')
       const proposal = proposalId ? proposalsById.get(proposalId) : undefined
       const number = this.field(row, 'NR_CONVENIO')
@@ -142,23 +173,34 @@ export class TransferegovClient {
         nr_vlr_repasse: this.field(row, 'VL_REPASSE_CONV'),
         nr_vlr_contrapartida: this.field(row, 'VL_CONTRAPARTIDA_CONV'),
       }
-      records.get(proposal.cnpj)?.partnerships.push(agreement)
-    })
+      const agreements = partnershipsByCnpj.get(proposal.cnpj) ?? []
+      agreements.push(agreement)
+      partnershipsByCnpj.set(proposal.cnpj, agreements)
+    }, ['ID_PROPOSTA', 'NR_CONVENIO', 'VL_GLOBAL_CONV']))
+    for (const [cnpj, agreements] of partnershipsByCnpj) records.get(cnpj)?.partnerships.push(...agreements)
+    } catch (error) {
+      for (const item of records.values()) item.sourceErrors.push(`siconv_convenio.zip: ${error instanceof Error ? error.message : String(error)}`)
+    }
 
-    this.legacyCache = { expiresAt: Date.now() + LEGACY_SOURCE_TTL_MS, cnpjKey, records }
+    for (const item of records.values()) item.sourceReferenceAt = latestSourceDate
+    if (![...records.values()].some((item) => item.sourceErrors.length)) this.legacyCache = { expiresAt: Date.now() + LEGACY_SOURCE_TTL_MS, cnpjKey, records }
     return records
   }
 
-  private async readLegacyCsv(file: string, onRow: (row: Record<string, string>) => void) {
-    const response = await fetch(`${LEGACY_DOWNLOADS}/${file}`, {
+  private async readLegacyCsv(file: string, onRow: (row: Record<string, string>) => void, requiredColumns: string[]) {
+    if (!/^siconv_(proponentes|proposta|convenio)\.zip$/.test(file)) throw new ServiceUnavailableException('Arquivo fora da lista permitida de dados oficiais.')
+    const response = await fetch(`${PUBLIC_DOWNLOADS}/${file}`, {
       headers: { accept: 'application/zip', 'user-agent': 'Semevo-Transferegov/1.0' },
       signal: AbortSignal.timeout(Math.max(this.timeoutMs, LEGACY_DOWNLOAD_TIMEOUT_MS)),
     })
     if (!response.ok || !response.body) {
-      throw new ServiceUnavailableException(`NÃ£o foi possÃ­vel baixar ${file} da base oficial de DiscricionÃ¡rias e Legais (HTTP ${response.status}).`)
+      throw new ServiceUnavailableException(`Não foi possível baixar ${file} da fonte atual de Discricionárias e Legais (HTTP ${response.status}).`)
     }
 
     let foundCsv = false
+    let validatedSchema = false
+    const lastModified = response.headers.get('last-modified')
+    const sourceDate = lastModified ? new Date(lastModified) : null
     const archive = Readable.fromWeb(response.body as never).pipe(unzipper.Parse({ forceStream: true }))
     for await (const entry of archive) {
       if (entry.type !== 'File' || !entry.path.toLowerCase().endsWith('.csv')) {
@@ -167,14 +209,25 @@ export class TransferegovClient {
       }
       foundCsv = true
       const parsed = entry.pipe(parseCsv({ bom: true, columns: true, delimiter: ';', relax_column_count: true, skip_empty_lines: true }))
-      for await (const row of parsed) onRow(row as Record<string, string>)
+      for await (const row of parsed) {
+        const data = row as Record<string, string>
+        if (!validatedSchema) {
+          const columns = new Set(Object.keys(data).map((column) => column.trim().toUpperCase()))
+          const missing = requiredColumns.filter((column) => !columns.has(column))
+          if (missing.length) throw new ServiceUnavailableException(`Esquema oficial de ${file} mudou; faltam colunas: ${missing.join(', ')}.`)
+          validatedSchema = true
+        }
+        onRow(data)
+      }
     }
-    if (!foundCsv) throw new ServiceUnavailableException(`O arquivo oficial ${file} nÃ£o contÃ©m CSV legÃ­vel.`)
+    if (!foundCsv || !validatedSchema) throw new ServiceUnavailableException(`O arquivo oficial ${file} não contém CSV legível com o esquema esperado.`)
+    return sourceDate && !Number.isNaN(sourceDate.getTime()) ? sourceDate : null
   }
 
-  private field(row: Record<string, string>, name: string): string | null {
+  private field(row: Record<string, unknown>, name: string): string | null {
     const value = row[name] ?? row[name.toLowerCase()]
-    return value?.trim() || null
+    if (value == null) return null
+    return String(value).trim() || null
   }
 
   private cnpjFrom(value: unknown): string | null {

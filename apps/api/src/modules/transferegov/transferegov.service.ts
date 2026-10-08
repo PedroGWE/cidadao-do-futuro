@@ -3,17 +3,18 @@ import { createHash } from 'crypto'
 import { Prisma, TransferegovEntityType } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
 import { ConfigureTransferegovDto, ImportTransferegovDto } from './dto/transferegov.dto'
-import { OfficialRecord, TransferegovClient } from './transferegov.client'
+import { LegacyRecords, OfficialRecord, TransferegovClient } from './transferegov.client'
 
 const SOURCE = 'TRANSFEREGOV_PUBLIC_API'
 const MODULE = 'GESTAO_PARCERIAS'
 const LEGACY_SOURCE = 'TRANSFEREGOV_PUBLIC_CSV'
 const LEGACY_MODULE = 'DISCRICIONARIAS_LEGAIS'
-const TRACKED_FIELDS = ['official_status', 'global_amount', 'signed_at', 'valid_until'] as const
-
-function projectTitleKey(title: string) {
-  return title.normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR')
-}
+const TRACKED_FIELDS = [
+  'proposal_external_id', 'program_external_id', 'proposal_number', 'proposal_year',
+  'instrument_number', 'instrument_type', 'title', 'proponent_name', 'proponent_cnpj',
+  'grantor_name', 'program_name', 'official_status', 'transfer_amount',
+  'counterpart_amount', 'global_amount', 'signed_at', 'valid_from', 'valid_until', 'official_url',
+] as const
 
 export function normalizeCnpj(value: string): string {
   return value.replace(/\D/g, '')
@@ -58,6 +59,12 @@ function asDecimal(value: unknown): Prisma.Decimal | null {
 
 function json(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue
+}
+
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize)
+  if (!value || typeof value !== 'object') return value
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([key, nested]) => [key, canonicalize(nested)]))
 }
 
 @Injectable()
@@ -132,46 +139,57 @@ export class TransferegovService implements OnModuleInit, OnModuleDestroy {
   }
 
   async importRecords(tenantId: string, userId: string, dto: ImportTransferegovDto) {
-    const records = await this.prisma.transferegovRecord.findMany({ where: { tenant_id: tenantId, id: { in: dto.record_ids } } })
-    if (records.length !== new Set(dto.record_ids).size) throw new NotFoundException('Um ou mais registros não pertencem a esta organização.')
     const explicitProjectId = dto.project_id
-    if (explicitProjectId) {
-      const exists = await this.prisma.project.count({ where: { id: explicitProjectId, tenant_id: tenantId, deleted_at: null } })
-      if (!exists) throw new NotFoundException('Projeto de destino não encontrado nesta organização.')
-    }
-    const existingProjects = await this.prisma.project.findMany({ where: { tenant_id: tenantId, deleted_at: null }, select: { id: true, name: true, total_budget: true } })
-    const projectsByTitle = new Map(existingProjects.map((project) => [projectTitleKey(project.name), project]))
-    const result: Array<{ record_id: string; project_id: string }> = []
-    for (const record of records.sort((a, b) => a.entity_type === 'PROPOSTA' ? -1 : b.entity_type === 'PROPOSTA' ? 1 : 0)) {
-      const title = record.title ?? `Registro Transferegov ${record.external_id}`
-      const titleKey = projectTitleKey(title)
-      let project = explicitProjectId ? null : projectsByTitle.get(titleKey) ?? null
-      let projectId = explicitProjectId ?? project?.id ?? null
-      if (!projectId) {
-        const project = await this.prisma.project.create({
-          data: {
-            tenant_id: tenantId,
-            created_by: userId,
-            name: title,
-            description: 'Projeto vinculado a dados públicos oficiais do Transferegov. Campos operacionais internos permanecem independentes.',
-            type: 'OUTROS',
-            status: 'RASCUNHO',
-            total_budget: record.global_amount,
-            code: `TG-${record.entity_type === 'PROPOSTA' ? 'P' : 'I'}-${record.external_id}`,
-            tags: ['Transferegov'],
-            members: { create: { user_id: userId, role: 'GESTOR' } },
-          },
-        })
-        projectId = project.id
-        projectsByTitle.set(titleKey, project)
-      } else if (!explicitProjectId && project && !project.total_budget && record.global_amount) {
-        await this.prisma.project.update({ where: { id: projectId }, data: { total_budget: record.global_amount } })
-        project.total_budget = record.global_amount
+    return this.prisma.$transaction(async (tx) => {
+      const records = await tx.transferegovRecord.findMany({ where: { tenant_id: tenantId, id: { in: [...new Set(dto.record_ids)] } } })
+      if (records.length !== new Set(dto.record_ids).size) throw new NotFoundException('Um ou mais registros não pertencem a esta organização.')
+      if (explicitProjectId) {
+        const exists = await tx.project.count({ where: { id: explicitProjectId, tenant_id: tenantId, deleted_at: null } })
+        if (!exists) throw new NotFoundException('Projeto de destino não encontrado nesta organização.')
       }
-      await this.prisma.transferegovRecord.update({ where: { id: record.id }, data: { project_id: projectId, imported_at: new Date() } })
-      result.push({ record_id: record.id, project_id: projectId })
-    }
-    return result
+
+      const proposalIds = [...new Set(records.flatMap((record) => record.entity_type === 'INSTRUMENTO' && record.proposal_external_id ? [record.proposal_external_id] : []))]
+      const sourceModules = [...new Set(records.map((record) => record.source_module))]
+      const parentProposals = proposalIds.length ? await tx.transferegovRecord.findMany({
+        where: { tenant_id: tenantId, entity_type: 'PROPOSTA', source_module: { in: sourceModules }, external_id: { in: proposalIds } },
+      }) : []
+      const relationshipKey = (sourceModule: string, proposalId: string) => `${sourceModule}:${proposalId}`
+      const proposalProjects = new Map(parentProposals.filter((record) => record.project_id).map((record) => [relationshipKey(record.source_module, record.external_id), record.project_id!]))
+      const ordered = [...records].sort((a, b) => a.entity_type === 'PROPOSTA' ? -1 : b.entity_type === 'PROPOSTA' ? 1 : 0)
+      const result: Array<{ record_id: string; project_id: string }> = []
+
+      for (const record of ordered) {
+        // A seleção explícita é o único caminho para substituir um vínculo existente.
+        let projectId = explicitProjectId ?? record.project_id ?? (
+          record.entity_type === 'INSTRUMENTO' && record.proposal_external_id
+            ? proposalProjects.get(relationshipKey(record.source_module, record.proposal_external_id)) ?? null
+            : null
+        )
+        if (!projectId) {
+          const project = await tx.project.create({
+            data: {
+              tenant_id: tenantId,
+              created_by: userId,
+              name: record.title ?? `Registro Transferegov ${record.external_id}`,
+              description: 'Projeto criado a partir de registro público do Transferegov. Valores e dados oficiais permanecem separados do orçamento e dos campos operacionais internos.',
+              type: 'OUTROS',
+              status: 'RASCUNHO',
+              code: `TG-${record.source_module}-${record.entity_type === 'PROPOSTA' ? 'P' : 'I'}-${record.external_id}`,
+              tags: ['Transferegov'],
+              members: { create: { user_id: userId, role: 'GESTOR' } },
+            },
+            select: { id: true },
+          })
+          projectId = project.id
+        }
+        if (record.entity_type === 'PROPOSTA') proposalProjects.set(relationshipKey(record.source_module, record.external_id), projectId)
+        if (record.project_id !== projectId || !record.imported_at) {
+          await tx.transferegovRecord.update({ where: { id: record.id }, data: { project_id: projectId, imported_at: new Date() } })
+        }
+        result.push({ record_id: record.id, project_id: projectId })
+      }
+      return result
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
   }
 
   private async startRun(tenantId: string, trigger: string) {
@@ -189,27 +207,47 @@ export class TransferegovService implements OnModuleInit, OnModuleDestroy {
     const integration = await this.prisma.transferegovIntegration.findUnique({ where: { tenant_id: tenantId } })
     if (!integration) return
     let consulted = 0, created = 0, updated = 0, ignored = 0, rejected = 0
+    const sourceErrors: string[] = []
     try {
-      const [proposals, referenceDate] = await Promise.all([this.client.proposalsByCnpj(integration.cnpj), this.client.referenceDate()])
+      let referenceDate: Date | null = null
+      try { referenceDate = await this.client.referenceDate() }
+      catch (error) { sourceErrors.push(`Referência da API: ${error instanceof Error ? error.message : String(error)}`) }
+
+      let proposals: OfficialRecord[] = []
+      try { proposals = await this.client.proposalsByCnpj(integration.cnpj) }
+      catch (error) { sourceErrors.push(`API Gestão de Parcerias / propostas: ${error instanceof Error ? error.message : String(error)}`) }
+
       const partnerships: OfficialRecord[] = []
       for (const proposal of proposals) {
         const id = asString(proposal.id_proposta)
         if (!id) { rejected += 1; continue }
-        partnerships.push(...await this.client.partnershipsByProposal(id))
+        try { partnerships.push(...await this.client.partnershipsByProposal(id)) }
+        catch (error) { sourceErrors.push(`Instrumento da proposta ${id}: ${error instanceof Error ? error.message : String(error)}`) }
       }
-      const configuredCnpjs = await this.prisma.transferegovIntegration.findMany({ select: { cnpj: true } })
-      const legacy = (await this.client.legacyRecordsByCnpjs(configuredCnpjs.map(({ cnpj }) => cnpj))).get(integration.cnpj)
+      let legacy: LegacyRecords | undefined
+      try { legacy = (await this.client.legacyRecordsByCnpjs([integration.cnpj])).get(integration.cnpj) }
+      catch (error) { sourceErrors.push(`Download Discricionárias e Legais: ${error instanceof Error ? error.message : String(error)}`) }
+      if (legacy?.sourceErrors.length) sourceErrors.push(...legacy.sourceErrors)
       const sources: Array<{ type: TransferegovEntityType; records: OfficialRecord[]; source: string; module: string }> = [
         { type: 'PROPOSTA', records: proposals, source: SOURCE, module: MODULE },
         { type: 'INSTRUMENTO', records: partnerships, source: SOURCE, module: MODULE },
         { type: 'PROPOSTA', records: legacy?.proposals ?? [], source: LEGACY_SOURCE, module: LEGACY_MODULE },
         { type: 'INSTRUMENTO', records: legacy?.partnerships ?? [], source: LEGACY_SOURCE, module: LEGACY_MODULE },
       ]
+      const programIds = [...new Set(sources.flatMap(({ records }) => records.map((raw) => asString(raw.id_programa)).filter((id): id is string => Boolean(id))))]
+      let programNames = new Map<string, string>()
+      if (programIds.length) {
+        try { programNames = await this.client.programNamesByIds(programIds) }
+        catch (error) { sourceErrors.push(`API Gestão de Parcerias / programas: ${error instanceof Error ? error.message : String(error)}`) }
+      }
       for (const { type, records, source, module } of sources) {
         for (const raw of records) {
           consulted += 1
-          const sourceReferenceDate = source === LEGACY_SOURCE ? null : referenceDate
-          const outcome = await this.upsertOfficial(tenantId, type, raw, sourceReferenceDate, userId, source, module)
+          const sourceReferenceDate = source === LEGACY_SOURCE ? legacy?.sourceReferenceAt ?? null : referenceDate
+          const programId = asString(raw.id_programa)
+          const programName = programId ? programNames.get(programId) : undefined
+          const enriched = programName && !asString(raw.nm_programa) ? { ...raw, nm_programa: programName } : raw
+          const outcome = await this.upsertOfficial(tenantId, type, enriched, sourceReferenceDate, userId, source, module)
           if (outcome === 'created') created += 1
           else if (outcome === 'updated') updated += 1
           else if (outcome === 'ignored') ignored += 1
@@ -218,8 +256,8 @@ export class TransferegovService implements OnModuleInit, OnModuleDestroy {
       }
       const now = new Date()
       await this.prisma.$transaction([
-        this.prisma.transferegovSyncRun.update({ where: { id: runId }, data: { status: rejected ? 'PARTIAL' : 'SUCCEEDED', completed_at: now, source_reference_at: referenceDate, consulted, created_count: created, updated_count: updated, ignored_count: ignored, rejected_count: rejected } }),
-        this.prisma.transferegovIntegration.update({ where: { id: integration.id }, data: { status: 'READY', last_success_at: now, last_error: null, next_sync_at: integration.automatic_sync ? new Date(now.getTime() + integration.sync_interval_hours * 3600000) : null } }),
+        this.prisma.transferegovSyncRun.update({ where: { id: runId }, data: { status: rejected || sourceErrors.length ? 'PARTIAL' : 'SUCCEEDED', completed_at: now, source_reference_at: referenceDate, consulted, created_count: created, updated_count: updated, ignored_count: ignored, rejected_count: rejected, error_message: sourceErrors.length ? sourceErrors.join('\n').slice(0, 4000) : null } }),
+        this.prisma.transferegovIntegration.update({ where: { id: integration.id }, data: { status: 'READY', ...(consulted > 0 && { last_success_at: now }), last_error: sourceErrors.length ? sourceErrors.join('\n').slice(0, 4000) : null, next_sync_at: integration.automatic_sync ? new Date(now.getTime() + integration.sync_interval_hours * 3600000) : null } }),
       ])
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -245,15 +283,17 @@ export class TransferegovService implements OnModuleInit, OnModuleDestroy {
       proponent_name: asString(raw.nm_ente_recebedor),
       proponent_cnpj: asString(raw.cnpj_ente_recebedor),
       grantor_name: asString(raw.nm_unidade_gestora),
-      program_name: null,
+      program_name: asString(raw.nm_programa),
       official_status: asString(type === 'PROPOSTA' ? raw.situacao_proposta : raw.in_situacao_parceria),
+      transfer_amount: asDecimal(raw.nr_vlr_repasse),
+      counterpart_amount: asDecimal(raw.nr_vlr_contrapartida),
       global_amount: asDecimal(raw.nr_vlr_total),
       signed_at: type === 'INSTRUMENTO' ? asDate(raw.dh_assinatura) : null,
       valid_from: asDate(raw.dh_inicio_vigencia),
       valid_until: asDate(raw.dh_fim_vigencia),
       official_url: null,
     }
-    const hash = createHash('sha256').update(JSON.stringify(raw)).digest('hex')
+    const hash = createHash('sha256').update(JSON.stringify(canonicalize(raw))).digest('hex')
     const where = { tenant_id_source_source_module_entity_type_external_id: { tenant_id: tenantId, source, source_module: sourceModule, entity_type: type, external_id: externalId } }
     const existing = await this.prisma.transferegovRecord.findUnique({ where })
     if (existing?.content_hash === hash) {
